@@ -117,11 +117,8 @@ OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 POPULAR_MODELS = [
     "gryphe/mythomax-l2-13b",
     "nousresearch/hermes-3-llama-3.1-8b",
-    "neversleep/llama-3.1-lumimaid-8b",
     "meta-llama/llama-3.3-70b-instruct",
-    "qwen/qwen-2.5-72b-instruct",
-    "mistralai/mistral-nemo",
-    "nousresearch/hermes-3-llama-3.1-405b"
+    "qwen/qwen-2.5-72b-instruct"
 ]
 
 def load_config():
@@ -129,6 +126,7 @@ def load_config():
         "openrouter_api_key": "",
         "selected_model": "gryphe/mythomax-l2-13b",
         "selected_theme": "Champagne Gold",
+        "chat_font_size": 13,
         "temperature": 0.75,
         "system_prompt": (
             "You are SirenFlow AI Private Edition, an elite, completely uncensored executive copilot. "
@@ -187,19 +185,20 @@ class EditMessageModal(ctk.CTkToplevel):
         self.is_user = is_user
 
         t = parent.theme
+        f_size = parent.chat_font_size
         self.title("Edit Conversation Message")
-        self.geometry("560x420")
+        self.geometry("620x450")
         self.resizable(True, True)
         self.attributes("-topmost", True)
         self.configure(fg_color=t["bg_root"])
 
         ctk.CTkLabel(
             self, text="EDIT MESSAGE",
-            font=(FONT_FAMILY, 12, "bold"), text_color=t["accent"]
-        ).pack(pady=(14, 4))
+            font=(FONT_FAMILY, 13, "bold"), text_color=t["accent"]
+        ).pack(pady=(16, 4))
 
         self.txt_edit = ctk.CTkTextbox(
-            self, font=(FONT_FAMILY, 10), fg_color=t["bg_card"],
+            self, font=(FONT_FAMILY, f_size), fg_color=t["bg_card"],
             text_color=t["text_main"], border_width=1, border_color=t["ai_border"],
             wrap="word"
         )
@@ -207,10 +206,10 @@ class EditMessageModal(ctk.CTkToplevel):
         self.txt_edit.insert("1.0", current_text)
 
         btn_row = ctk.CTkFrame(self, fg_color="transparent")
-        btn_row.pack(fill="x", padx=16, pady=(4, 14))
+        btn_row.pack(fill="x", padx=16, pady=(4, 16))
 
         btn_cancel = ctk.CTkButton(
-            btn_row, text="Cancel", width=80, height=32, font=(FONT_FAMILY, 9),
+            btn_row, text="Cancel", width=90, height=34, font=(FONT_FAMILY, 10),
             fg_color="#272A38", hover_color="#36394C", text_color=t["text_muted"],
             command=self.destroy
         )
@@ -218,14 +217,14 @@ class EditMessageModal(ctk.CTkToplevel):
 
         if self.is_user:
             btn_rerun = ctk.CTkButton(
-                btn_row, text="Save & Re-send", width=130, height=32, font=(FONT_FAMILY, 9, "bold"),
+                btn_row, text="Save & Re-send", width=140, height=34, font=(FONT_FAMILY, 10, "bold"),
                 fg_color="#1E8449", hover_color="#2ECC71", text_color="#FFFFFF",
                 command=self._save_and_rerun
             )
             btn_rerun.pack(side="right", padx=4)
 
         btn_save = ctk.CTkButton(
-            btn_row, text="Save Changes", width=120, height=32, font=(FONT_FAMILY, 9, "bold"),
+            btn_row, text="Save Changes", width=130, height=34, font=(FONT_FAMILY, 10, "bold"),
             fg_color=t["accent"], hover_color=t["accent_hover"], text_color="#08090B",
             command=self._save_only
         )
@@ -244,14 +243,14 @@ class EditMessageModal(ctk.CTkToplevel):
         self.destroy()
 
 # ==============================================================================
-# 4. EXECUTIVE PREFERENCES MODAL
+# 4. EXECUTIVE PREFERENCES MODAL (NOW WITH FONT SIZE PICKER)
 # ==============================================================================
 class SettingsWindow(ctk.CTkToplevel):
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
         self.title("SirenFlow AI — Preferences")
-        self.geometry("520x490")
+        self.geometry("540x580")
         self.resizable(False, False)
         self.attributes("-topmost", True)
 
@@ -263,11 +262,11 @@ class SettingsWindow(ctk.CTkToplevel):
 
         ctk.CTkLabel(
             self, text="✦ SYSTEM PREFERENCES",
-            font=(FONT_FAMILY, 13, "bold"), text_color=t["accent"]
+            font=(FONT_FAMILY, 14, "bold"), text_color=t["accent"]
         ).pack(pady=(16, 2))
 
         ctk.CTkLabel(
-            self, text="Configure Neural Engines, Palette Aesthetic & Rules",
+            self, text="Configure Neural Engines, Palette Aesthetic, Font Size & Rules",
             font=(FONT_FAMILY, 9), text_color=t["text_muted"]
         ).pack(pady=(0, 10))
 
@@ -277,41 +276,68 @@ class SettingsWindow(ctk.CTkToplevel):
         )
         frame.pack(fill="both", expand=True, padx=20, pady=4)
 
-        ctk.CTkLabel(frame, text="OpenRouter API Token:", font=(FONT_FAMILY, 9, "bold"), text_color=t["accent"]).pack(anchor="w", padx=14, pady=(10, 2))
+        # API Key
+        ctk.CTkLabel(frame, text="OpenRouter API Token:", font=(FONT_FAMILY, 10, "bold"), text_color=t["accent"]).pack(anchor="w", padx=14, pady=(8, 2))
         self.entry_key = ctk.CTkEntry(frame, show="*", font=(FONT_FAMILY, 10), height=32, fg_color=t["bg_root"], text_color=t["text_main"], placeholder_text="sk-or-v1-...")
         self.entry_key.insert(0, self.cfg.get("openrouter_api_key", ""))
-        self.entry_key.pack(fill="x", padx=14, pady=(0, 10))
+        self.entry_key.pack(fill="x", padx=14, pady=(0, 8))
 
-        ctk.CTkLabel(frame, text="Neural Engine (Preloaded Uncensored Models):", font=(FONT_FAMILY, 9, "bold"), text_color=t["accent"]).pack(anchor="w", padx=14, pady=(2, 2))
-        self.combo_model = ctk.CTkComboBox(frame, values=POPULAR_MODELS, height=32, font=(FONT_FAMILY, 9), fg_color=t["bg_root"], text_color=t["text_main"])
+        # Model
+        ctk.CTkLabel(frame, text="Neural Engine (Preloaded Uncensored Models):", font=(FONT_FAMILY, 10, "bold"), text_color=t["accent"]).pack(anchor="w", padx=14, pady=(2, 2))
+        self.combo_model = ctk.CTkComboBox(frame, values=POPULAR_MODELS, height=32, font=(FONT_FAMILY, 10), fg_color=t["bg_root"], text_color=t["text_main"])
         self.combo_model.set(self.cfg.get("selected_model", POPULAR_MODELS[0]))
-        self.combo_model.pack(fill="x", padx=14, pady=(0, 10))
+        self.combo_model.pack(fill="x", padx=14, pady=(0, 8))
 
-        ctk.CTkLabel(frame, text="Visual Aesthetic Palette:", font=(FONT_FAMILY, 9, "bold"), text_color=t["accent"]).pack(anchor="w", padx=14, pady=(2, 2))
-        self.combo_theme = ctk.CTkComboBox(frame, values=list(THEMES.keys()), height=32, font=(FONT_FAMILY, 9), fg_color=t["bg_root"], text_color=t["text_main"])
+        # Theme & Font Size Row
+        row_settings = ctk.CTkFrame(frame, fg_color="transparent")
+        row_settings.pack(fill="x", padx=14, pady=(2, 8))
+        row_settings.grid_columnconfigure((0, 1), weight=1)
+
+        # Theme Selector
+        ctk.CTkLabel(row_settings, text="Palette Aesthetic:", font=(FONT_FAMILY, 10, "bold"), text_color=t["accent"]).grid(row=0, column=0, sticky="w", padx=(0, 6), pady=(0, 2))
+        self.combo_theme = ctk.CTkComboBox(row_settings, values=list(THEMES.keys()), height=32, font=(FONT_FAMILY, 10), fg_color=t["bg_root"], text_color=t["text_main"])
         self.combo_theme.set(self.cfg.get("selected_theme", "Champagne Gold"))
-        self.combo_theme.pack(fill="x", padx=14, pady=(0, 10))
+        self.combo_theme.grid(row=1, column=0, sticky="ew", padx=(0, 6))
 
-        ctk.CTkLabel(frame, text="System Persona Prompt:", font=(FONT_FAMILY, 9, "bold"), text_color=t["accent"]).pack(anchor="w", padx=14, pady=(2, 2))
-        self.txt_sys = ctk.CTkTextbox(frame, height=90, font=(FONT_FAMILY, 9), fg_color=t["bg_root"], text_color=t["text_main"], wrap="word")
+        # Chat Font Size Selector
+        font_options = ["10 (Compact)", "11", "12 (Standard)", "13 (Balanced)", "14 (Comfortable)", "15", "16 (Large)"]
+        cur_font = str(self.cfg.get("chat_font_size", 13))
+        match_font_val = next((opt for opt in font_options if opt.startswith(cur_font)), "13 (Balanced)")
+
+        ctk.CTkLabel(row_settings, text="Chat Text Size:", font=(FONT_FAMILY, 10, "bold"), text_color=t["accent"]).grid(row=0, column=1, sticky="w", padx=(6, 0), pady=(0, 2))
+        self.combo_font = ctk.CTkComboBox(row_settings, values=font_options, height=32, font=(FONT_FAMILY, 10), fg_color=t["bg_root"], text_color=t["text_main"])
+        self.combo_font.set(match_font_val)
+        self.combo_font.grid(row=1, column=1, sticky="ew", padx=(6, 0))
+
+        # System Prompt
+        ctk.CTkLabel(frame, text="System Persona Prompt:", font=(FONT_FAMILY, 10, "bold"), text_color=t["accent"]).pack(anchor="w", padx=14, pady=(2, 2))
+        self.txt_sys = ctk.CTkTextbox(frame, height=85, font=(FONT_FAMILY, 10), fg_color=t["bg_root"], text_color=t["text_main"], wrap="word")
         self.txt_sys.insert("1.0", self.cfg.get("system_prompt", ""))
         self.txt_sys.pack(fill="x", padx=14, pady=(0, 10))
 
-        self.lbl_status = ctk.CTkLabel(self, text="", font=(FONT_FAMILY, 9), text_color=t["accent"])
+        self.lbl_status = ctk.CTkLabel(self, text="", font=(FONT_FAMILY, 10), text_color=t["accent"])
         self.lbl_status.pack(pady=2)
 
         btn_save = ctk.CTkButton(
-            self, text="APPLY PREFERENCES", font=(FONT_FAMILY, 10, "bold"), height=36,
+            self, text="APPLY PREFERENCES", font=(FONT_FAMILY, 11, "bold"), height=38,
             fg_color=t["accent"], hover_color=t["accent_hover"],
             text_color="#08090B", corner_radius=8, command=self._save
         )
-        btn_save.pack(fill="x", padx=20, pady=(0, 14))
+        btn_save.pack(fill="x", padx=20, pady=(0, 16))
 
     def _save(self):
         self.cfg["openrouter_api_key"] = self.entry_key.get().strip()
         self.cfg["selected_model"] = self.combo_model.get().strip()
         self.cfg["selected_theme"] = self.combo_theme.get().strip()
         self.cfg["system_prompt"] = self.txt_sys.get("1.0", "end").strip()
+
+        # Parse numeric font size
+        raw_font = self.combo_font.get().split()[0].strip()
+        try:
+            self.cfg["chat_font_size"] = int(raw_font)
+        except ValueError:
+            self.cfg["chat_font_size"] = 13
+
         save_config(self.cfg)
 
         self.parent.cfg = self.cfg
@@ -326,13 +352,14 @@ class SirenFlowAIApp(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("SirenFlow AI — Private Luxury Studio")
-        self.geometry("1020x730")
-        self.minsize(820, 560)
+        self.geometry("1060x760")
+        self.minsize(860, 600)
         ctk.set_appearance_mode("dark")
 
         self.cfg = load_config()
         self.theme_name = self.cfg.get("selected_theme", "Champagne Gold")
         self.theme = THEMES.get(self.theme_name, THEMES["Champagne Gold"])
+        self.chat_font_size = int(self.cfg.get("chat_font_size", 13))
 
         self.chats = load_chats()
         self.current_chat_id = None
@@ -343,7 +370,7 @@ class SirenFlowAIApp(ctk.CTk):
         self.stop_requested = False
         self.active_request_stream = None
 
-        self.grid_columnconfigure(0, weight=0, minsize=240)
+        self.grid_columnconfigure(0, weight=0, minsize=250)
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
@@ -353,6 +380,7 @@ class SirenFlowAIApp(ctk.CTk):
     def apply_theme_and_rebuild(self):
         self.theme_name = self.cfg.get("selected_theme", "Champagne Gold")
         self.theme = THEMES.get(self.theme_name, THEMES["Champagne Gold"])
+        self.chat_font_size = int(self.cfg.get("chat_font_size", 13))
 
         for widget in self.winfo_children():
             widget.destroy()
@@ -368,20 +396,20 @@ class SirenFlowAIApp(ctk.CTk):
         self.configure(fg_color=t["bg_root"])
 
         # ----------------- SIDEBAR -----------------
-        self.sidebar_frame = ctk.CTkFrame(self, fg_color=t["bg_sidebar"], width=240, corner_radius=0, border_width=1, border_color=t["ai_border"])
+        self.sidebar_frame = ctk.CTkFrame(self, fg_color=t["bg_sidebar"], width=250, corner_radius=0, border_width=1, border_color=t["ai_border"])
         self.sidebar_frame.grid(row=0, column=0, sticky="nsew")
         self.sidebar_frame.grid_propagate(False)
 
         brand_frame = ctk.CTkFrame(self.sidebar_frame, fg_color="transparent")
         brand_frame.pack(fill="x", padx=16, pady=(16, 8))
 
-        ctk.CTkLabel(brand_frame, text="✦ SIRENFLOW", font=(FONT_FAMILY, 12, "bold"), text_color=t["accent"]).pack(anchor="w")
-        ctk.CTkLabel(brand_frame, text="PRIVATE DESKTOP INTELLIGENCE", font=(FONT_FAMILY, 7, "bold"), text_color=t["text_muted"]).pack(anchor="w", pady=(1, 0))
+        ctk.CTkLabel(brand_frame, text="✦ SIRENFLOW", font=(FONT_FAMILY, 13, "bold"), text_color=t["accent"]).pack(anchor="w")
+        ctk.CTkLabel(brand_frame, text="PRIVATE DESKTOP INTELLIGENCE", font=(FONT_FAMILY, 8, "bold"), text_color=t["text_muted"]).pack(anchor="w", pady=(1, 0))
 
         btn_new_chat = ctk.CTkButton(
             self.sidebar_frame,
             text="+ New Conversation",
-            font=(FONT_FAMILY, 9, "bold"),
+            font=(FONT_FAMILY, 10, "bold"),
             height=34,
             fg_color="#141720",
             hover_color="#202433",
@@ -393,7 +421,7 @@ class SirenFlowAIApp(ctk.CTk):
         )
         btn_new_chat.pack(fill="x", padx=12, pady=(6, 12))
 
-        ctk.CTkLabel(self.sidebar_frame, text="CONVERSATION VAULT", font=(FONT_FAMILY, 7, "bold"), text_color=t["text_muted"]).pack(anchor="w", padx=16, pady=(2, 4))
+        ctk.CTkLabel(self.sidebar_frame, text="CONVERSATION VAULT", font=(FONT_FAMILY, 8, "bold"), text_color=t["text_muted"]).pack(anchor="w", padx=16, pady=(2, 4))
 
         self.chats_scroll = ctk.CTkScrollableFrame(self.sidebar_frame, fg_color="transparent")
         self.chats_scroll.pack(fill="both", expand=True, padx=4, pady=(0, 10))
@@ -403,22 +431,27 @@ class SirenFlowAIApp(ctk.CTk):
         self.main_frame.grid(row=0, column=1, sticky="nsew")
 
         # Top Bar
-        top_bar = ctk.CTkFrame(self.main_frame, fg_color=t["bg_sidebar"], height=44, corner_radius=0, border_width=1, border_color=t["ai_border"])
+        top_bar = ctk.CTkFrame(self.main_frame, fg_color=t["bg_sidebar"], height=46, corner_radius=0, border_width=1, border_color=t["ai_border"])
         top_bar.pack(fill="x", side="top")
 
         model_short = self.cfg.get("selected_model", "mythomax").split("/")[-1]
-        self.lbl_model_badge = ctk.CTkLabel(top_bar, text=f"✧ {model_short}  •  {self.theme_name}", font=(FONT_FAMILY, 9, "bold"), text_color=t["accent"])
+        self.lbl_model_badge = ctk.CTkLabel(
+            top_bar,
+            text=f"✧ {model_short}  •  {self.theme_name}  •  {self.chat_font_size}pt",
+            font=(FONT_FAMILY, 10, "bold"),
+            text_color=t["accent"]
+        )
         self.lbl_model_badge.pack(side="left", padx=16)
 
         btn_settings = ctk.CTkButton(
-            top_bar, text="Preferences", width=95, height=26, font=(FONT_FAMILY, 9),
+            top_bar, text="Preferences", width=100, height=28, font=(FONT_FAMILY, 10),
             fg_color="#151722", hover_color="#232637", text_color=t["text_main"],
             border_width=1, border_color=t["ai_border"], corner_radius=6,
             command=lambda: SettingsWindow(self)
         )
         btn_settings.pack(side="right", padx=14, pady=8)
 
-        # Messages Scroll Frame (Solid Pure Black)
+        # Messages Scroll Frame
         self.scroll_messages = ctk.CTkScrollableFrame(self.main_frame, fg_color=t["bg_root"], corner_radius=0)
         self.scroll_messages.pack(fill="both", expand=True, padx=12, pady=6)
 
@@ -426,21 +459,21 @@ class SirenFlowAIApp(ctk.CTk):
         bottom_box = ctk.CTkFrame(self.main_frame, fg_color=t["bg_sidebar"], corner_radius=0, border_width=1, border_color=t["ai_border"])
         bottom_box.pack(fill="x", side="bottom")
 
-        # Action Bar (Canvas Size Picker & Studio Status)
+        # Action Bar
         action_bar = ctk.CTkFrame(bottom_box, fg_color="transparent")
         action_bar.pack(fill="x", padx=14, pady=(6, 2))
 
-        ctk.CTkLabel(action_bar, text="Canvas Size:", font=(FONT_FAMILY, 8, "bold"), text_color=t["text_muted"]).pack(side="left", padx=(4, 6))
+        ctk.CTkLabel(action_bar, text="Canvas Size:", font=(FONT_FAMILY, 9, "bold"), text_color=t["text_muted"]).pack(side="left", padx=(4, 6))
 
         self.combo_ratio = ctk.CTkComboBox(
-            action_bar, values=list(ASPECT_RATIOS.keys()), width=160, height=26,
-            font=(FONT_FAMILY, 8), fg_color=t["bg_card"], text_color=t["text_main"],
+            action_bar, values=list(ASPECT_RATIOS.keys()), width=165, height=26,
+            font=(FONT_FAMILY, 9), fg_color=t["bg_card"], text_color=t["text_main"],
             border_width=1, border_color=t["ai_border"]
         )
         self.combo_ratio.set("1:1 (Square)")
         self.combo_ratio.pack(side="left", padx=(0, 10))
 
-        self.lbl_studio_status = ctk.CTkLabel(action_bar, text="Ready (Text or Image)", font=(FONT_FAMILY, 8), text_color=t["text_muted"])
+        self.lbl_studio_status = ctk.CTkLabel(action_bar, text="Ready (Text or Image)", font=(FONT_FAMILY, 9), text_color=t["text_muted"])
         self.lbl_studio_status.pack(side="left")
 
         # Input & Action Buttons
@@ -449,7 +482,7 @@ class SirenFlowAIApp(ctk.CTk):
 
         self.entry_user = ctk.CTkEntry(
             input_container, placeholder_text="Ask anything, request long script, or describe a photo to create...",
-            font=(FONT_FAMILY, 10), height=42, fg_color="transparent",
+            font=(FONT_FAMILY, 11), height=44, fg_color="transparent",
             text_color=t["text_main"], border_width=0
         )
         self.entry_user.pack(side="left", fill="x", expand=True, padx=(12, 8), pady=4)
@@ -457,13 +490,13 @@ class SirenFlowAIApp(ctk.CTk):
 
         # Image Button
         self.btn_gen_img = ctk.CTkButton(
-            input_container, text="Create Pic", width=95, height=36, font=(FONT_FAMILY, 9, "bold"),
+            input_container, text="Create Pic", width=95, height=36, font=(FONT_FAMILY, 10, "bold"),
             fg_color="#272A38", hover_color="#373B4E", text_color=t["accent"],
             corner_radius=8, command=self.generate_image_action
         )
         self.btn_gen_img.pack(side="right", padx=(2, 4), pady=4)
 
-        # Send / Stop Dynamic Button
+        # Dynamic Send/Stop Button
         self.btn_send = ctk.CTkButton(
             input_container, text="➤", width=46, height=36, font=(FONT_FAMILY, 13, "bold"),
             fg_color=t["accent"], hover_color=t["accent_hover"],
@@ -474,7 +507,7 @@ class SirenFlowAIApp(ctk.CTk):
         self._refresh_sidebar_list()
 
     # -------------------------------------------------------------
-    # RIGHT-CLICK CONTEXT MENU (SELECTION OR FULL COPY)
+    # RIGHT-CLICK CONTEXT MENU
     # -------------------------------------------------------------
     def _attach_context_menu(self, widget, txt_widget, full_content, msg_idx, is_user):
         def _popup(e):
@@ -487,7 +520,7 @@ class SirenFlowAIApp(ctk.CTk):
             menu = tk.Menu(
                 self, tearoff=0, bg="#151821", fg="#EDEDF2",
                 activebackground=self.theme["accent"], activeforeground="#08090B",
-                relief="flat", bd=1
+                relief="flat", bd=1, font=(FONT_FAMILY, 10)
             )
             if selected:
                 menu.add_command(label="Copy Selected Text", command=lambda: self._copy_to_clipboard(selected))
@@ -521,7 +554,7 @@ class SirenFlowAIApp(ctk.CTk):
             self.send_message()
 
     # -------------------------------------------------------------
-    # CHAT BUBBLES: BLUE-LINE CURSOR SELECTION + DUAL COPY BUTTONS
+    # CHAT BUBBLES: RESILIENT RESIZING + FONT SIZE SYNC
     # -------------------------------------------------------------
     def _rerender_all_bubbles(self):
         for widget in self.scroll_messages.winfo_children():
@@ -534,9 +567,11 @@ class SirenFlowAIApp(ctk.CTk):
     def _calc_text_height(self, content):
         lines = content.split("\n")
         total = 0
+        # Adapt characters per line dynamically to font size
+        chars_per_line = max(24, int(58 * (11 / self.chat_font_size)))
         for l in lines:
             line_len = len(l)
-            wrap_rows = max(1, (line_len // 60) + 1)
+            wrap_rows = max(1, (line_len // chars_per_line) + 1)
             total += wrap_rows
         return max(1, total)
 
@@ -566,39 +601,39 @@ class SirenFlowAIApp(ctk.CTk):
         head.pack(fill="x", padx=10, pady=(6, 2))
 
         title_text = "YOU" if is_user else "✧ SIRENFLOW"
-        ctk.CTkLabel(head, text=title_text, font=(FONT_FAMILY, 8, "bold"), text_color=t["accent"]).pack(side="left")
+        ctk.CTkLabel(head, text=title_text, font=(FONT_FAMILY, 9, "bold"), text_color=t["accent"]).pack(side="left")
 
         btn_top_copy = ctk.CTkButton(
-            head, text="Copy", width=46, height=18, font=(FONT_FAMILY, 7, "bold"),
+            head, text="Copy", width=46, height=18, font=(FONT_FAMILY, 8, "bold"),
             fg_color="#181A22", hover_color="#2B2E3D", text_color=t["text_muted"],
             corner_radius=4, command=lambda: self._copy_to_clipboard(content)
         )
         btn_top_copy.pack(side="right", padx=(2, 0))
 
         btn_edit = ctk.CTkButton(
-            head, text="Edit", width=42, height=18, font=(FONT_FAMILY, 7),
+            head, text="Edit", width=42, height=18, font=(FONT_FAMILY, 8),
             fg_color="#181A22", hover_color="#2B2E3D", text_color=t["accent"] if is_user else t["text_muted"],
             corner_radius=4, command=lambda: self.open_edit_dialog(msg_idx, content, is_user)
         )
         btn_edit.pack(side="right", padx=(2, 2))
 
-        # --- Borderless Textbox with Blue-Line Cursor Selection ---
+        # --- Textbox with Dynamic User Font Size ---
         init_h = self._calc_text_height(content)
         txt_box = tk.Text(
             bubble,
             bg=bubble_color,
             fg=t["text_main"],
-            font=(FONT_FAMILY, 10),
+            font=(FONT_FAMILY, self.chat_font_size),
             wrap="word",
             relief="flat",
             bd=0,
             highlightthickness=0,
-            selectbackground="#0D6EFD",   # Vibrant Blue Cursor Selection Highlight
+            selectbackground="#0D6EFD",
             selectforeground="#FFFFFF",
             insertwidth=0,
             cursor="xterm",
             height=init_h,
-            width=58
+            width=54
         )
         txt_box.pack(fill="both", expand=True, padx=12, pady=(2, 4))
         txt_box.insert("1.0", content)
@@ -626,7 +661,7 @@ class SirenFlowAIApp(ctk.CTk):
         foot.pack(fill="x", padx=10, pady=(2, 6))
 
         btn_bot_copy = ctk.CTkButton(
-            foot, text="Copy Text", width=75, height=18, font=(FONT_FAMILY, 7),
+            foot, text="Copy Text", width=75, height=18, font=(FONT_FAMILY, 8),
             fg_color="transparent", hover_color="#202330", text_color=t["text_muted"],
             command=lambda: self._copy_to_clipboard(content)
         )
@@ -650,7 +685,7 @@ class SirenFlowAIApp(ctk.CTk):
         head = ctk.CTkFrame(card, fg_color="transparent")
         head.pack(fill="x", padx=12, pady=(8, 4))
 
-        ctk.CTkLabel(head, text=f"✧ SIRENFLOW STUDIO  •  {ratio_label}", font=(FONT_FAMILY, 8, "bold"), text_color=t["accent"]).pack(side="left")
+        ctk.CTkLabel(head, text=f"✧ SIRENFLOW STUDIO  •  {ratio_label}", font=(FONT_FAMILY, 9, "bold"), text_color=t["accent"]).pack(side="left")
 
         btn_save = ctk.CTkButton(
             head, text="Save PNG", width=75, height=20, font=(FONT_FAMILY, 8, "bold"),
@@ -666,7 +701,7 @@ class SirenFlowAIApp(ctk.CTk):
         img_label = ctk.CTkLabel(card, image=ctk_img, text="")
         img_label.pack(padx=12, pady=6)
 
-        caption = ctk.CTkLabel(card, text=f"Prompt: {prompt}", font=(FONT_FAMILY, 8), text_color=t["text_muted"], justify="left", wraplength=disp_w)
+        caption = ctk.CTkLabel(card, text=f"Prompt: {prompt}", font=(FONT_FAMILY, 9), text_color=t["text_muted"], justify="left", wraplength=disp_w)
         caption.pack(anchor="w", padx=12, pady=(2, 8))
 
         self._scroll_to_bottom()
@@ -798,7 +833,7 @@ class SirenFlowAIApp(ctk.CTk):
             self.after(0, lambda: self._set_generation_state(False))
 
     # -------------------------------------------------------------
-    # SESSIONS VAULT: ABSOLUTE PERSISTENCE & NEW BLACK CHAT
+    # SESSIONS VAULT
     # -------------------------------------------------------------
     def _sync_and_save_current_chat(self):
         if not self.current_chat_id:
@@ -826,7 +861,7 @@ class SirenFlowAIApp(ctk.CTk):
             widget.destroy()
 
         if not self.chats:
-            lbl_empty = ctk.CTkLabel(self.chats_scroll, text="No saved sessions", font=(FONT_FAMILY, 8), text_color=t["text_muted"])
+            lbl_empty = ctk.CTkLabel(self.chats_scroll, text="No saved sessions", font=(FONT_FAMILY, 9), text_color=t["text_muted"])
             lbl_empty.pack(pady=20)
             return
 
@@ -835,7 +870,6 @@ class SirenFlowAIApp(ctk.CTk):
             title = chat.get("title", "Untitled Session")
             is_active = (chat_id == self.current_chat_id)
 
-            # INAYOS DITO: t["bg_sidebar"] na ang default border_color imbes na "transparent"
             row = ctk.CTkFrame(
                 self.chats_scroll,
                 fg_color=t["user_bubble"] if is_active else "transparent",
@@ -847,7 +881,7 @@ class SirenFlowAIApp(ctk.CTk):
             row.pack_propagate(False)
 
             btn_chat = ctk.CTkButton(
-                row, text=title, anchor="w", font=(FONT_FAMILY, 8, "bold" if is_active else "normal"),
+                row, text=title, anchor="w", font=(FONT_FAMILY, 9, "bold" if is_active else "normal"),
                 text_color=t["accent"] if is_active else t["text_main"],
                 fg_color="transparent", hover_color="#1D202B",
                 command=lambda cid=chat_id: self.load_chat_by_id(cid)
@@ -905,12 +939,12 @@ class SirenFlowAIApp(ctk.CTk):
 
         ctk.CTkLabel(
             welcome_frame, text="✦ SIRENFLOW PRIVATE STUDIO",
-            font=(FONT_FAMILY, 14, "bold"), text_color=t["accent"]
+            font=(FONT_FAMILY, 15, "bold"), text_color=t["accent"]
         ).pack(pady=(0, 4))
 
         ctk.CTkLabel(
-            welcome_frame, text="Uncensored Intelligence • 3,000 Tokens • FLUX.1 Engine Ready",
-            font=(FONT_FAMILY, 9), text_color=t["text_muted"]
+            welcome_frame, text=f"Uncensored Intelligence • 3,000 Tokens • Text Size: {self.chat_font_size}pt",
+            font=(FONT_FAMILY, 10), text_color=t["text_muted"]
         ).pack()
 
     def load_chat_by_id(self, chat_id):
