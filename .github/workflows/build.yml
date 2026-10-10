@@ -1,4 +1,3 @@
-
 name: Build SirenFlow AI (Mac & Windows)
 
 on:
@@ -20,7 +19,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install customtkinter requests pyinstaller
+          pip install customtkinter requests pyinstaller pillow
 
       - name: Compile Mac App
         run: |
@@ -50,7 +49,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install customtkinter requests pyinstaller
+          pip install customtkinter requests pyinstaller pillow
 
       - name: Compile Windows EXE
         run: |
