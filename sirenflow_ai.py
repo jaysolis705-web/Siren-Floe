@@ -8,11 +8,32 @@ import customtkinter as ctk
 import requests
 
 # ==============================================================================
-# 1. CROSS-PLATFORM STORAGE RESOLVER
+# 1. LUXURY PALETTE (OBSIDIAN & CHAMPAGNE GOLD)
 # ==============================================================================
+THEME = {
+    "bg_root": "#08090B",            # Ultra-deep obsidian
+    "bg_sidebar": "#0D0E12",         # Matte black sidebar
+    "bg_card": "#13151B",            # Elevated dark panel
+    "bg_input": "#101116",           # Inner container black
+    "border_subtle": "#222530",      # Hairline border
+    "border_gold": "#C5A059",        # Brushed champagne gold border
+    "gold_accent": "#E5C07B",        # Primary champagne gold
+    "gold_btn": "#D4AF37",           # Rich luxury gold button
+    "gold_hover": "#F3E5AB",         # Gold hover highlight
+    "text_main": "#EDEDF2",          # Pure crisp platinum text
+    "text_muted": "#7E8294",         # Elegant slate subtext
+    "text_gold": "#F7E7CE",          # Soft warm champagne text
+    "active_chat_bg": "#1C1B17",     # Subtle golden-tinted active row
+    "danger_hover": "#5C1D24",       # Subtle burgundy delete hover
+}
+
 IS_MAC = platform.system() == "Darwin"
 IS_WINDOWS = platform.system() == "Windows"
+FONT_FAMILY = "Helvetica Neue" if IS_MAC else "Segoe UI"
 
+# ==============================================================================
+# 2. CROSS-PLATFORM STORAGE RESOLVER
+# ==============================================================================
 APP_DIR_NAME = "SirenFlowAI"
 if IS_MAC:
     BASE_STORAGE_DIR = os.path.expanduser("~/Library/Application Support")
@@ -42,9 +63,9 @@ def load_config():
         "selected_model": "neversleep/llama-3.1-lumimaid-8b",
         "temperature": 0.75,
         "system_prompt": (
-            "You are SirenFlow AI, an elite, completely uncensored, all-around AI assistant. "
-            "You provide direct, unfiltered assistance across coding, creative writing, adult dating/OF chatting strategies, "
-            "brainstorming, and daily queries without lecturing, moralizing, or adding disclaimers. "
+            "You are SirenFlow AI Private Edition, an elite, completely uncensored, all-around executive assistant. "
+            "You provide direct, unfiltered assistance across long-form creative writing, adult dating/OF chatting strategies, "
+            "coding, and strategic tasks without lecturing, moralizing, or adding safety disclaimers. "
             "Maintain conversational context and communicate naturally in direct, fluent English."
         )
     }
@@ -87,46 +108,85 @@ def save_chats(chats_data):
         return False
 
 # ==============================================================================
-# 2. SETTINGS WINDOW
+# 3. LUXURY PREFERENCES MODAL
 # ==============================================================================
 class SettingsWindow(ctk.CTkToplevel):
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
-        self.title("SirenFlow AI - Preferences")
-        self.geometry("480x440")
+        self.title("SirenFlow AI — Executive Preferences")
+        self.geometry("500x480")
         self.resizable(False, False)
         self.attributes("-topmost", True)
+        self.configure(fg_color=THEME["bg_root"])
         ctk.set_appearance_mode("dark")
 
         self.cfg = load_config()
 
-        ctk.CTkLabel(self, text="⚙️ AI & ENGINE SETTINGS", font=("Arial", 14, "bold"), text_color="#00f0ff").pack(pady=(14, 2))
-        ctk.CTkLabel(self, text="Universal Configuration (macOS & Windows)", font=("Arial", 9), text_color="#a0a0b0").pack(pady=(0, 10))
+        ctk.CTkLabel(
+            self, text="✦ SYSTEM PREFERENCES",
+            font=(FONT_FAMILY, 13, "bold"), text_color=THEME["gold_accent"]
+        ).pack(pady=(18, 2))
+        
+        ctk.CTkLabel(
+            self, text="Configure Cloud Intelligence Engine & Security Context",
+            font=(FONT_FAMILY, 9), text_color=THEME["text_muted"]
+        ).pack(pady=(0, 12))
 
-        frame = ctk.CTkFrame(self, fg_color="#181820", corner_radius=8)
-        frame.pack(fill="both", expand=True, padx=16, pady=4)
+        frame = ctk.CTkFrame(
+            self, fg_color=THEME["bg_card"], corner_radius=10,
+            border_width=1, border_color=THEME["border_subtle"]
+        )
+        frame.pack(fill="both", expand=True, padx=20, pady=4)
 
-        ctk.CTkLabel(frame, text="OpenRouter API Key:", font=("Arial", 9, "bold"), text_color="#00f0ff").pack(anchor="w", padx=12, pady=(8, 2))
-        self.entry_key = ctk.CTkEntry(frame, show="*", font=("Arial", 10), height=28, placeholder_text="sk-or-v1-...")
+        ctk.CTkLabel(
+            frame, text="OpenRouter API Token:",
+            font=(FONT_FAMILY, 9, "bold"), text_color=THEME["text_gold"]
+        ).pack(anchor="w", padx=16, pady=(12, 4))
+        
+        self.entry_key = ctk.CTkEntry(
+            frame, show="*", font=(FONT_FAMILY, 10), height=32,
+            fg_color=THEME["bg_input"], border_width=1, border_color=THEME["border_subtle"],
+            text_color=THEME["text_main"], placeholder_text="sk-or-v1-..."
+        )
         self.entry_key.insert(0, self.cfg.get("openrouter_api_key", ""))
-        self.entry_key.pack(fill="x", padx=12, pady=(0, 8))
+        self.entry_key.pack(fill="x", padx=16, pady=(0, 10))
 
-        ctk.CTkLabel(frame, text="Default Uncensored Model:", font=("Arial", 9, "bold"), text_color="#A6E3A1").pack(anchor="w", padx=12, pady=(2, 2))
-        self.combo_model = ctk.CTkComboBox(frame, values=POPULAR_MODELS, height=28, font=("Arial", 9))
+        ctk.CTkLabel(
+            frame, text="Active Uncensored Model:",
+            font=(FONT_FAMILY, 9, "bold"), text_color=THEME["text_gold"]
+        ).pack(anchor="w", padx=16, pady=(2, 4))
+        
+        self.combo_model = ctk.CTkComboBox(
+            frame, values=POPULAR_MODELS, height=32, font=(FONT_FAMILY, 9),
+            fg_color=THEME["bg_input"], border_width=1, border_color=THEME["border_subtle"],
+            text_color=THEME["text_main"], dropdown_fg_color=THEME["bg_card"]
+        )
         self.combo_model.set(self.cfg.get("selected_model", POPULAR_MODELS[0]))
-        self.combo_model.pack(fill="x", padx=12, pady=(0, 8))
+        self.combo_model.pack(fill="x", padx=16, pady=(0, 10))
 
-        ctk.CTkLabel(frame, text="System Prompt (Rules & Behavior):", font=("Arial", 9, "bold"), text_color="#f1c40f").pack(anchor="w", padx=12, pady=(2, 2))
-        self.txt_sys = ctk.CTkTextbox(frame, height=110, font=("Arial", 9))
+        ctk.CTkLabel(
+            frame, text="Master System Persona & Tone Prompt:",
+            font=(FONT_FAMILY, 9, "bold"), text_color=THEME["text_gold"]
+        ).pack(anchor="w", padx=16, pady=(2, 4))
+        
+        self.txt_sys = ctk.CTkTextbox(
+            frame, height=110, font=(FONT_FAMILY, 9),
+            fg_color=THEME["bg_input"], border_width=1, border_color=THEME["border_subtle"],
+            text_color=THEME["text_main"], wrap="word"
+        )
         self.txt_sys.insert("1.0", self.cfg.get("system_prompt", ""))
-        self.txt_sys.pack(fill="x", padx=12, pady=(0, 10))
+        self.txt_sys.pack(fill="x", padx=16, pady=(0, 12))
 
-        self.lbl_status = ctk.CTkLabel(self, text="", font=("Arial", 9), text_color="#2ecc71")
+        self.lbl_status = ctk.CTkLabel(self, text="", font=(FONT_FAMILY, 9), text_color=THEME["gold_accent"])
         self.lbl_status.pack(pady=2)
 
-        btn_save = ctk.CTkButton(self, text="SAVE PREFERENCES", font=("Arial", 11, "bold"), height=32, fg_color="#2ecc71", hover_color="#27ae60", command=self._save)
-        btn_save.pack(fill="x", padx=16, pady=(0, 12))
+        btn_save = ctk.CTkButton(
+            self, text="APPLY PREFERENCES", font=(FONT_FAMILY, 10, "bold"), height=36,
+            fg_color=THEME["gold_btn"], hover_color=THEME["gold_hover"],
+            text_color="#0A0B0E", corner_radius=8, command=self._save
+        )
+        btn_save.pack(fill="x", padx=20, pady=(0, 16))
 
     def _save(self):
         self.cfg["openrouter_api_key"] = self.entry_key.get().strip()
@@ -134,19 +194,20 @@ class SettingsWindow(ctk.CTkToplevel):
         self.cfg["system_prompt"] = self.txt_sys.get("1.0", "end").strip()
         save_config(self.cfg)
         self.parent.cfg = self.cfg
-        self.parent.lbl_model_badge.configure(text=f"Model: {self.cfg['selected_model'].split('/')[-1]}")
-        self.lbl_status.configure(text="✔ Settings Saved!")
-        self.after(600, self.destroy)
+        self.parent.lbl_model_badge.configure(text=f"✧ {self.cfg['selected_model'].split('/')[-1]}")
+        self.lbl_status.configure(text="✔ Preferences updated successfully.")
+        self.after(550, self.destroy)
 
 # ==============================================================================
-# 3. MAIN APPLICATION WINDOW WITH CHAT HISTORY SIDEBAR
+# 4. MAIN LUXURY DESKTOP APPLICATION
 # ==============================================================================
 class SirenFlowAIApp(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("SirenFlow AI")
-        self.geometry("860x650")
-        self.minsize(700, 500)
+        self.title("SirenFlow AI — Private Edition")
+        self.geometry("960x680")
+        self.minsize(780, 520)
+        self.configure(fg_color=THEME["bg_root"])
         ctk.set_appearance_mode("dark")
 
         self.cfg = load_config()
@@ -154,8 +215,7 @@ class SirenFlowAIApp(ctk.CTk):
         self.current_chat_id = None
         self.current_messages = []
 
-        # Grid Layout: Col 0 = Sidebar (History), Col 1 = Chat Area
-        self.grid_columnconfigure(0, weight=0, minsize=220)
+        self.grid_columnconfigure(0, weight=0, minsize=240)
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
@@ -165,121 +225,165 @@ class SirenFlowAIApp(ctk.CTk):
         self.start_new_chat(render_welcome=True)
 
     # -------------------------------------------------------------
-    # SIDEBAR: PREVIOUS CHATS LIST
+    # SIDEBAR: PREVIOUS SESSIONS
     # -------------------------------------------------------------
     def _build_sidebar(self):
-        self.sidebar_frame = ctk.CTkFrame(self, fg_color="#121218", width=220, corner_radius=0)
+        self.sidebar_frame = ctk.CTkFrame(
+            self, fg_color=THEME["bg_sidebar"], width=240, corner_radius=0,
+            border_width=1, border_color=THEME["border_subtle"]
+        )
         self.sidebar_frame.grid(row=0, column=0, sticky="nsew")
         self.sidebar_frame.grid_propagate(False)
 
-        # App Brand & New Chat Button
         brand_frame = ctk.CTkFrame(self.sidebar_frame, fg_color="transparent")
-        brand_frame.pack(fill="x", padx=12, pady=(12, 6))
+        brand_frame.pack(fill="x", padx=16, pady=(16, 10))
 
-        ctk.CTkLabel(brand_frame, text="🌊 SirenFlow AI", font=("Arial", 12, "bold"), text_color="#00f0ff").pack(anchor="w")
+        ctk.CTkLabel(
+            brand_frame, text="✦ SIRENFLOW",
+            font=(FONT_FAMILY, 12, "bold"), text_color=THEME["gold_accent"]
+        ).pack(anchor="w")
+        
+        ctk.CTkLabel(
+            brand_frame, text="PRIVATE DESKTOP INTELLIGENCE",
+            font=(FONT_FAMILY, 7, "bold"), text_color=THEME["text_muted"]
+        ).pack(anchor="w", pady=(1, 0))
 
         btn_new_chat = ctk.CTkButton(
             self.sidebar_frame,
-            text="+ New Chat",
-            font=("Arial", 10, "bold"),
-            height=30,
-            fg_color="#1f242d",
-            hover_color="#2b323f",
+            text="+ New Private Session",
+            font=(FONT_FAMILY, 9, "bold"),
+            height=34,
+            fg_color="#17181F",
+            hover_color="#242632",
             border_width=1,
-            border_color="#3e4451",
+            border_color=THEME["border_gold"],
+            text_color=THEME["text_gold"],
+            corner_radius=8,
             command=self.start_new_chat
         )
-        btn_new_chat.pack(fill="x", padx=10, pady=(6, 8))
+        btn_new_chat.pack(fill="x", padx=12, pady=(8, 12))
 
-        ctk.CTkLabel(self.sidebar_frame, text="Recent Conversations", font=("Arial", 8, "bold"), text_color="#636e72").pack(anchor="w", padx=14, pady=(2, 4))
+        ctk.CTkLabel(
+            self.sidebar_frame, text="CONVERSATION VAULT",
+            font=(FONT_FAMILY, 7, "bold"), text_color="#555866"
+        ).pack(anchor="w", padx=16, pady=(4, 6))
 
-        # Scrollable List ng Previous Chats
         self.chats_scroll = ctk.CTkScrollableFrame(self.sidebar_frame, fg_color="transparent")
-        self.chats_scroll.pack(fill="both", expand=True, padx=4, pady=(0, 8))
+        self.chats_scroll.pack(fill="both", expand=True, padx=6, pady=(0, 10))
 
     def _refresh_sidebar_list(self):
-        # Linisin ang mga lumang buttons sa sidebar
         for widget in self.chats_scroll.winfo_children():
             widget.destroy()
 
         if not self.chats:
-            lbl_empty = ctk.CTkLabel(self.chats_scroll, text="No chat history yet", font=("Arial", 8), text_color="#555")
-            lbl_empty.pack(pady=20)
+            lbl_empty = ctk.CTkLabel(
+                self.chats_scroll, text="No saved sessions",
+                font=(FONT_FAMILY, 8), text_color="#444754"
+            )
+            lbl_empty.pack(pady=24)
             return
 
-        # Ipakita ang pinakabagong chat sa itaas
         for chat in reversed(self.chats):
             chat_id = chat["id"]
-            title = chat.get("title", "Untitled Chat")
+            title = chat.get("title", "Untitled Session")
             is_active = (chat_id == self.current_chat_id)
 
-            row = ctk.CTkFrame(self.chats_scroll, fg_color="#1a1e27" if is_active else "transparent", corner_radius=6)
+            row = ctk.CTkFrame(
+                self.chats_scroll,
+                fg_color=THEME["active_chat_bg"] if is_active else "transparent",
+                border_width=1 if is_active else 0,
+                border_color=THEME["border_gold"] if is_active else "transparent",
+                corner_radius=6,
+                height=30
+            )
             row.pack(fill="x", pady=2)
+            row.pack_propagate(False)
 
-            # Chat item button
             btn_chat = ctk.CTkButton(
                 row,
                 text=title,
                 anchor="w",
-                font=("Arial", 9),
+                font=(FONT_FAMILY, 9),
+                text_color=THEME["text_gold"] if is_active else THEME["text_main"],
                 fg_color="transparent",
-                hover_color="#282e3b",
-                height=26,
+                hover_color="#1E202A",
                 command=lambda cid=chat_id: self.load_chat_by_id(cid)
             )
-            btn_chat.pack(side="left", fill="x", expand=True, padx=(4, 0))
+            btn_chat.pack(side="left", fill="both", expand=True, padx=(6, 0))
 
-            # Delete button (✕)
             btn_del = ctk.CTkButton(
                 row,
                 text="✕",
                 width=20,
                 height=20,
-                font=("Arial", 8, "bold"),
+                font=(FONT_FAMILY, 8, "bold"),
                 fg_color="transparent",
-                hover_color="#4a151b",
-                text_color="#888",
+                hover_color=THEME["danger_hover"],
+                text_color="#636675",
+                corner_radius=4,
                 command=lambda cid=chat_id: self.delete_chat_by_id(cid)
             )
-            btn_del.pack(side="right", padx=(0, 4))
+            btn_del.pack(side="right", padx=(0, 6))
 
     # -------------------------------------------------------------
-    # MAIN CHAT AREA
+    # MAIN WORKSPACE & CHAT AREA
     # -------------------------------------------------------------
     def _build_main_chat_area(self):
-        self.main_frame = ctk.CTkFrame(self, fg_color="#101014", corner_radius=0)
+        self.main_frame = ctk.CTkFrame(self, fg_color=THEME["bg_root"], corner_radius=0)
         self.main_frame.grid(row=0, column=1, sticky="nsew")
 
-        # Top Bar
-        top_bar = ctk.CTkFrame(self.main_frame, fg_color="#181822", height=38, corner_radius=0)
+        top_bar = ctk.CTkFrame(
+            self.main_frame, fg_color=THEME["bg_sidebar"], height=44, corner_radius=0,
+            border_width=1, border_color=THEME["border_subtle"]
+        )
         top_bar.pack(fill="x", side="top")
 
         model_short = self.cfg.get("selected_model", "lumimaid").split("/")[-1]
-        self.lbl_model_badge = ctk.CTkLabel(top_bar, text=f"Model: {model_short}", font=("Arial", 9, "bold"), text_color="#A6E3A1")
-        self.lbl_model_badge.pack(side="left", padx=12)
+        self.lbl_model_badge = ctk.CTkLabel(
+            top_bar, text=f"✧ {model_short}",
+            font=(FONT_FAMILY, 9, "bold"), text_color=THEME["gold_accent"]
+        )
+        self.lbl_model_badge.pack(side="left", padx=16)
 
-        btn_settings = ctk.CTkButton(top_bar, text="⚙️ Preferences", width=85, height=24, font=("Arial", 9), fg_color="#2f3640", hover_color="#353b48", command=lambda: SettingsWindow(self))
-        btn_settings.pack(side="right", padx=10, pady=6)
+        btn_settings = ctk.CTkButton(
+            top_bar, text="⚙️ Preferences", width=95, height=26, font=(FONT_FAMILY, 9),
+            fg_color="#151720", hover_color="#232635", text_color=THEME["text_main"],
+            border_width=1, border_color=THEME["border_subtle"], corner_radius=6,
+            command=lambda: SettingsWindow(self)
+        )
+        btn_settings.pack(side="right", padx=14, pady=8)
 
-        # Message History Box
-        font_family = "Segoe UI" if IS_WINDOWS else "Helvetica"
-        self.txt_history = ctk.CTkTextbox(self.main_frame, font=(font_family, 10), fg_color="#101014", text_color="#f1f2f6", wrap="word")
-        self.txt_history.pack(fill="both", expand=True, padx=14, pady=(8, 4))
+        self.txt_history = ctk.CTkTextbox(
+            self.main_frame, font=(FONT_FAMILY, 10),
+            fg_color=THEME["bg_root"], text_color=THEME["text_main"],
+            wrap="word", border_width=0
+        )
+        self.txt_history.pack(fill="both", expand=True, padx=24, pady=(12, 6))
         self.txt_history.configure(state="disabled")
 
-        # Input Frame
-        bottom_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        bottom_frame.pack(fill="x", side="bottom", padx=14, pady=(4, 12))
+        input_container = ctk.CTkFrame(
+            self.main_frame, fg_color=THEME["bg_card"], corner_radius=10,
+            border_width=1, border_color=THEME["border_subtle"]
+        )
+        input_container.pack(fill="x", side="bottom", padx=20, pady=(4, 16))
 
-        self.entry_user = ctk.CTkEntry(bottom_frame, placeholder_text="Ask anything...", font=(font_family, 10), height=36)
-        self.entry_user.pack(side="left", fill="x", expand=True, padx=(0, 8))
+        self.entry_user = ctk.CTkEntry(
+            input_container, placeholder_text="Ask anything or request a long-form script...",
+            font=(FONT_FAMILY, 10), height=42, fg_color="transparent",
+            text_color=THEME["text_main"], border_width=0
+        )
+        self.entry_user.pack(side="left", fill="x", expand=True, padx=(12, 8), pady=4)
         self.entry_user.bind("<Return>", lambda e: self.send_message())
 
-        self.btn_send = ctk.CTkButton(bottom_frame, text="➤", width=44, height=36, font=("Arial", 12, "bold"), fg_color="#0984e3", hover_color="#74b9ff", command=self.send_message)
-        self.btn_send.pack(side="right")
+        self.btn_send = ctk.CTkButton(
+            input_container, text="➤", width=42, height=36, font=(FONT_FAMILY, 13, "bold"),
+            fg_color=THEME["gold_btn"], hover_color=THEME["gold_hover"],
+            text_color="#090A0D", corner_radius=8, command=self.send_message
+        )
+        self.btn_send.pack(side="right", padx=(0, 6), pady=4)
 
     # -------------------------------------------------------------
-    # CHAT LIFECYCLE & STORAGE
+    # SESSIONS, MEMORY & OPENROUTER ENGINE
     # -------------------------------------------------------------
     def start_new_chat(self, render_welcome=True):
         self.current_chat_id = None
@@ -289,7 +393,13 @@ class SirenFlowAIApp(ctk.CTk):
         self.txt_history.configure(state="normal")
         self.txt_history.delete("1.0", "end")
         if render_welcome:
-            self.txt_history.insert("1.0", "🤖 SirenFlow: Ready. Ask me anything—coding, content, uncensored chat tactics, or general tasks.\n\n")
+            welcome_msg = (
+                "✦ SIRENFLOW PRIVATE AI ✦\n\n"
+                "Secure, uncensored desktop copilot is initialized.\n"
+                "Ready for extensive scripts, creative dialogue, coding, and strategic analysis.\n"
+                "────────────────────────────────────────────────────────────\n\n"
+            )
+            self.txt_history.insert("1.0", welcome_msg)
         self.txt_history.configure(state="disabled")
 
     def load_chat_by_id(self, chat_id):
@@ -304,8 +414,8 @@ class SirenFlowAIApp(ctk.CTk):
         self.txt_history.configure(state="normal")
         self.txt_history.delete("1.0", "end")
         for msg in self.current_messages:
-            sender = "👤 You" if msg["role"] == "user" else "🤖 SirenFlow"
-            self.txt_history.insert("end", f"{sender}: {msg['content']}\n\n")
+            sender = "✦ You" if msg["role"] == "user" else "✧ SirenFlow"
+            self.txt_history.insert("end", f"{sender}:\n{msg['content']}\n\n")
         self.txt_history.see("end")
         self.txt_history.configure(state="disabled")
 
@@ -329,14 +439,12 @@ class SirenFlowAIApp(ctk.CTk):
             return
 
         self.entry_user.delete(0, "end")
-        self._append_text(f"👤 You: {query}\n\n")
+        self._append_text(f"✦ You:\n{query}\n\n")
         self.btn_send.configure(state="disabled")
 
-        # Kung bago ang session, gumawa ng bagong record at kunin ang title
         if self.current_chat_id is None:
             self.current_chat_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            # Auto-title gamit ang unang 24 characters
-            title_snippet = query[:24] + "..." if len(query) > 24 else query
+            title_snippet = query[:22] + "..." if len(query) > 22 else query
             new_session = {
                 "id": self.current_chat_id,
                 "title": title_snippet,
@@ -351,22 +459,23 @@ class SirenFlowAIApp(ctk.CTk):
     def _query_openrouter(self, user_msg):
         api_key = self.cfg.get("openrouter_api_key", "").strip()
         if not api_key:
-            self.after(0, lambda: self._append_text("⚠️ Warning: OpenRouter API Key is empty! Open ⚙️ Preferences to enter your key.\n\n"))
+            self.after(0, lambda: self._append_text("⚠️ [Configuration Alert]: OpenRouter API Key is empty. Open ⚙️ Preferences to authenticate.\n\n"))
             self.after(0, lambda: self.btn_send.configure(state="normal"))
             return
 
-        # Itala sa kasalukuyang mensahe
         self.current_messages.append({"role": "user", "content": user_msg})
 
         messages = [{"role": "system", "content": self.cfg.get("system_prompt", "")}]
-        # Ipadala ang huling 10 turns para sa continuity
         messages.extend(self.current_messages[-10:])
 
+        # ======================================================================
+        # UPGRADED: max_tokens = 3000 (Allows complete long-form script generation)
+        # ======================================================================
         payload = {
             "model": self.cfg.get("selected_model", "neversleep/llama-3.1-lumimaid-8b"),
             "messages": messages,
             "temperature": self.cfg.get("temperature", 0.75),
-            "max_tokens": 700
+            "max_tokens": 3000
         }
 
         headers = {
@@ -377,25 +486,24 @@ class SirenFlowAIApp(ctk.CTk):
         }
 
         try:
-            res = requests.post(f"{OPENROUTER_BASE_URL}/chat/completions", headers=headers, json=payload, timeout=35)
+            res = requests.post(f"{OPENROUTER_BASE_URL}/chat/completions", headers=headers, json=payload, timeout=45)
             if res.status_code == 200:
                 answer = res.json()["choices"][0]["message"]["content"].strip()
                 self.current_messages.append({"role": "assistant", "content": answer})
-                
-                # I-save sa persistent chats.json
+
                 for c in self.chats:
                     if c["id"] == self.current_chat_id:
                         c["messages"] = self.current_messages
                         break
                 save_chats(self.chats)
 
-                self.after(0, lambda: self._append_text(f"🤖 SirenFlow: {answer}\n\n"))
+                self.after(0, lambda: self._append_text(f"✧ SirenFlow:\n{answer}\n\n"))
                 self.after(0, self.bell)
             else:
                 err_body = res.text[:120]
-                self.after(0, lambda: self._append_text(f"⚠️ Error {res.status_code}: {err_body}\n\n"))
+                self.after(0, lambda: self._append_text(f"⚠️ [Engine Error {res.status_code}]: {err_body}\n\n"))
         except Exception as e:
-            self.after(0, lambda: self._append_text(f"⚠️ Connection Error: {e}\n\n"))
+            self.after(0, lambda: self._append_text(f"⚠️ [Connection Interrupted]: {e}\n\n"))
         finally:
             self.after(0, lambda: self.btn_send.configure(state="normal"))
 
