@@ -14,18 +14,18 @@ import requests
 from PIL import Image
 
 # ==============================================================================
-# 1. LUXURY THEMES PALETTE SYSTEM
+# 1. LUXURY THEMES PALETTE SYSTEM (PURE STEALTH BLACKS)
 # ==============================================================================
 THEMES = {
     "Champagne Gold": {
         "accent": "#D4AF37",
         "accent_hover": "#F3E5AB",
-        "bg_root": "#0A0B0E",
-        "bg_sidebar": "#101217",
-        "bg_card": "#151821",
-        "user_bubble": "#242016",
+        "bg_root": "#08090B",
+        "bg_sidebar": "#0D0E12",
+        "bg_card": "#13151B",
+        "user_bubble": "#1E1A11",
         "user_border": "#9E822F",
-        "ai_bubble": "#13161F",
+        "ai_bubble": "#111319",
         "ai_border": "#252A38",
         "text_main": "#EDEDF2",
         "text_muted": "#828699"
@@ -33,12 +33,12 @@ THEMES = {
     "Cyberpunk Cyan": {
         "accent": "#00F0FF",
         "accent_hover": "#70F8FF",
-        "bg_root": "#06090E",
-        "bg_sidebar": "#0A0F1A",
-        "bg_card": "#101726",
-        "user_bubble": "#0C232B",
+        "bg_root": "#05080D",
+        "bg_sidebar": "#090E17",
+        "bg_card": "#0F1624",
+        "user_bubble": "#0A2028",
         "user_border": "#009AA3",
-        "ai_bubble": "#0E1522",
+        "ai_bubble": "#0C131E",
         "ai_border": "#1D283A",
         "text_main": "#F0F6FC",
         "text_muted": "#7B889B"
@@ -46,12 +46,12 @@ THEMES = {
     "Emerald Velvet": {
         "accent": "#2ECC71",
         "accent_hover": "#58D68D",
-        "bg_root": "#070C08",
-        "bg_sidebar": "#0C140F",
-        "bg_card": "#121F17",
-        "user_bubble": "#122B1C",
+        "bg_root": "#060A07",
+        "bg_sidebar": "#0A120D",
+        "bg_card": "#101C14",
+        "user_bubble": "#102819",
         "user_border": "#1E8449",
-        "ai_bubble": "#0F1A13",
+        "ai_bubble": "#0D1812",
         "ai_border": "#1E2F23",
         "text_main": "#E8F8F5",
         "text_muted": "#769A85"
@@ -59,12 +59,12 @@ THEMES = {
     "Royal Amethyst": {
         "accent": "#A855F7",
         "accent_hover": "#C084FC",
-        "bg_root": "#0A0710",
-        "bg_sidebar": "#100B1B",
-        "bg_card": "#181128",
-        "user_bubble": "#27153D",
+        "bg_root": "#08060D",
+        "bg_sidebar": "#0E0A17",
+        "bg_card": "#161025",
+        "user_bubble": "#231238",
         "user_border": "#7E22CE",
-        "ai_bubble": "#140E22",
+        "ai_bubble": "#120C1F",
         "ai_border": "#291E3D",
         "text_main": "#F5F3FF",
         "text_muted": "#897E9C"
@@ -72,12 +72,12 @@ THEMES = {
     "Crimson Noir": {
         "accent": "#EF4444",
         "accent_hover": "#F87171",
-        "bg_root": "#0D0708",
-        "bg_sidebar": "#160C0E",
-        "bg_card": "#201215",
-        "user_bubble": "#331317",
+        "bg_root": "#0A0506",
+        "bg_sidebar": "#13090B",
+        "bg_card": "#1C0F12",
+        "user_bubble": "#2C1014",
         "user_border": "#B91C1C",
-        "ai_bubble": "#1A0E11",
+        "ai_bubble": "#170C0E",
         "ai_border": "#331B20",
         "text_main": "#FEF2F2",
         "text_muted": "#96787B"
@@ -163,7 +163,8 @@ def load_chats():
         return []
     try:
         with open(CHATS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
+            return data if isinstance(data, list) else []
     except Exception:
         return []
 
@@ -176,7 +177,7 @@ def save_chats(chats_data):
         return False
 
 # ==============================================================================
-# 3. MESSAGE EDIT MODAL (MULTILINE EDITOR)
+# 3. MESSAGE EDIT MODAL (MULTILINE TEXTBOX)
 # ==============================================================================
 class EditMessageModal(ctk.CTkToplevel):
     def __init__(self, parent, msg_index, current_text, is_user):
@@ -193,7 +194,7 @@ class EditMessageModal(ctk.CTkToplevel):
         self.configure(fg_color=t["bg_root"])
 
         ctk.CTkLabel(
-            self, text="✏️ EDIT MESSAGE",
+            self, text="EDIT MESSAGE",
             font=(FONT_FAMILY, 12, "bold"), text_color=t["accent"]
         ).pack(pady=(14, 4))
 
@@ -217,14 +218,14 @@ class EditMessageModal(ctk.CTkToplevel):
 
         if self.is_user:
             btn_rerun = ctk.CTkButton(
-                btn_row, text="🚀 Save & Re-send", width=130, height=32, font=(FONT_FAMILY, 9, "bold"),
+                btn_row, text="Save & Re-send", width=130, height=32, font=(FONT_FAMILY, 9, "bold"),
                 fg_color="#1E8449", hover_color="#2ECC71", text_color="#FFFFFF",
                 command=self._save_and_rerun
             )
             btn_rerun.pack(side="right", padx=4)
 
         btn_save = ctk.CTkButton(
-            btn_row, text="💾 Save Changes", width=120, height=32, font=(FONT_FAMILY, 9, "bold"),
+            btn_row, text="Save Changes", width=120, height=32, font=(FONT_FAMILY, 9, "bold"),
             fg_color=t["accent"], hover_color=t["accent_hover"], text_color="#08090B",
             command=self._save_only
         )
@@ -315,7 +316,7 @@ class SettingsWindow(ctk.CTkToplevel):
 
         self.parent.cfg = self.cfg
         self.parent.apply_theme_and_rebuild()
-        self.lbl_status.configure(text="✔ Preferences applied!")
+        self.lbl_status.configure(text="Preferences applied successfully.")
         self.after(500, self.destroy)
 
 # ==============================================================================
@@ -325,7 +326,7 @@ class SirenFlowAIApp(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("SirenFlow AI — Private Luxury Studio")
-        self.geometry("1000x720")
+        self.geometry("1020x730")
         self.minsize(820, 560)
         ctk.set_appearance_mode("dark")
 
@@ -338,7 +339,6 @@ class SirenFlowAIApp(ctk.CTk):
         self.current_messages = []
         self.active_images = []
 
-        # Flow Control para sa Cancel/Stop Request
         self.is_generating = False
         self.stop_requested = False
         self.active_request_stream = None
@@ -411,14 +411,14 @@ class SirenFlowAIApp(ctk.CTk):
         self.lbl_model_badge.pack(side="left", padx=16)
 
         btn_settings = ctk.CTkButton(
-            top_bar, text="⚙️ Preferences", width=95, height=26, font=(FONT_FAMILY, 9),
+            top_bar, text="Preferences", width=95, height=26, font=(FONT_FAMILY, 9),
             fg_color="#151722", hover_color="#232637", text_color=t["text_main"],
             border_width=1, border_color=t["ai_border"], corner_radius=6,
             command=lambda: SettingsWindow(self)
         )
         btn_settings.pack(side="right", padx=14, pady=8)
 
-        # Messages Scroll Frame
+        # Messages Scroll Frame (Solid Pure Black)
         self.scroll_messages = ctk.CTkScrollableFrame(self.main_frame, fg_color=t["bg_root"], corner_radius=0)
         self.scroll_messages.pack(fill="both", expand=True, padx=12, pady=6)
 
@@ -457,13 +457,13 @@ class SirenFlowAIApp(ctk.CTk):
 
         # Image Button
         self.btn_gen_img = ctk.CTkButton(
-            input_container, text="🎨 Create Pic", width=95, height=36, font=(FONT_FAMILY, 9, "bold"),
+            input_container, text="Create Pic", width=95, height=36, font=(FONT_FAMILY, 9, "bold"),
             fg_color="#272A38", hover_color="#373B4E", text_color=t["accent"],
             corner_radius=8, command=self.generate_image_action
         )
         self.btn_gen_img.pack(side="right", padx=(2, 4), pady=4)
 
-        # Dynamic Action Button (Send '➤' O Stop '⏹')
+        # Send / Stop Dynamic Button
         self.btn_send = ctk.CTkButton(
             input_container, text="➤", width=46, height=36, font=(FONT_FAMILY, 13, "bold"),
             fg_color=t["accent"], hover_color=t["accent_hover"],
@@ -474,23 +474,31 @@ class SirenFlowAIApp(ctk.CTk):
         self._refresh_sidebar_list()
 
     # -------------------------------------------------------------
-    # RIGHT-CLICK CONTEXT MENU (HOLD OR RIGHT CLICK)
+    # RIGHT-CLICK CONTEXT MENU (SELECTION OR FULL COPY)
     # -------------------------------------------------------------
-    def _attach_context_menu(self, widget, content, msg_idx, is_user):
+    def _attach_context_menu(self, widget, txt_widget, full_content, msg_idx, is_user):
         def _popup(e):
+            selected = ""
+            try:
+                selected = txt_widget.get("sel.first", "sel.last")
+            except tk.TclError:
+                pass
+
             menu = tk.Menu(
                 self, tearoff=0, bg="#151821", fg="#EDEDF2",
                 activebackground=self.theme["accent"], activeforeground="#08090B",
                 relief="flat", bd=1
             )
-            menu.add_command(label="📋 Copy Text", command=lambda: self._copy_to_clipboard(content))
-            menu.add_command(label="✏️ Edit Message", command=lambda: self.open_edit_dialog(msg_idx, content, is_user))
+            if selected:
+                menu.add_command(label="Copy Selected Text", command=lambda: self._copy_to_clipboard(selected))
+            menu.add_command(label="Copy Full Message", command=lambda: self._copy_to_clipboard(full_content))
+            menu.add_command(label="Edit Message", command=lambda: self.open_edit_dialog(msg_idx, full_content, is_user))
+
             try:
                 menu.tk_popup(e.x_root, e.y_root)
             finally:
                 menu.grab_release()
 
-        # Bind para sa Windows / Linux (Button-3) at Mac (Button-2 & Ctrl+Click)
         widget.bind("<Button-3>", _popup)
         widget.bind("<Button-2>", _popup)
         widget.bind("<Control-Button-1>", _popup)
@@ -506,7 +514,6 @@ class SirenFlowAIApp(ctk.CTk):
 
     def update_and_rerun_message(self, msg_idx, new_text):
         if 0 <= msg_idx < len(self.current_messages):
-            # I-update at putulin ang kasunod na sagot para mai-regenerate
             self.current_messages = self.current_messages[:msg_idx]
             self._rerender_all_bubbles()
             self.entry_user.delete(0, "end")
@@ -514,7 +521,7 @@ class SirenFlowAIApp(ctk.CTk):
             self.send_message()
 
     # -------------------------------------------------------------
-    # CHAT BUBBLES RENDER ENGINE (TOP & BOTTOM COPY + EDIT)
+    # CHAT BUBBLES: BLUE-LINE CURSOR SELECTION + DUAL COPY BUTTONS
     # -------------------------------------------------------------
     def _rerender_all_bubbles(self):
         for widget in self.scroll_messages.winfo_children():
@@ -523,6 +530,15 @@ class SirenFlowAIApp(ctk.CTk):
             if "🎨 [Rendered Image" in msg["content"]:
                 continue
             self._create_bubble(msg["role"], msg["content"], msg_idx=idx)
+
+    def _calc_text_height(self, content):
+        lines = content.split("\n")
+        total = 0
+        for l in lines:
+            line_len = len(l)
+            wrap_rows = max(1, (line_len // 60) + 1)
+            total += wrap_rows
+        return max(1, total)
 
     def _create_bubble(self, role, content, msg_idx=None):
         t = self.theme
@@ -533,107 +549,97 @@ class SirenFlowAIApp(ctk.CTk):
         row = ctk.CTkFrame(self.scroll_messages, fg_color="transparent")
         row.pack(fill="x", padx=8, pady=6)
 
+        bubble_color = t["user_bubble"] if is_user else t["ai_bubble"]
+        border_color = t["user_border"] if is_user else t["ai_border"]
+
+        bubble = ctk.CTkFrame(
+            row, fg_color=bubble_color, corner_radius=12,
+            border_width=1, border_color=border_color
+        )
         if is_user:
-            bubble = ctk.CTkFrame(
-                row, fg_color=t["user_bubble"], corner_radius=12,
-                border_width=1, border_color=t["user_border"]
-            )
             bubble.pack(anchor="e", padx=(80, 8))
-
-            # Header na may Top Copy & Edit Buttons
-            head = ctk.CTkFrame(bubble, fg_color="transparent")
-            head.pack(fill="x", padx=10, pady=(6, 2))
-
-            header = ctk.CTkLabel(head, text="YOU", font=(FONT_FAMILY, 8, "bold"), text_color=t["accent"])
-            header.pack(side="left")
-
-            btn_top_copy = ctk.CTkButton(
-                head, text="📋 Copy", width=46, height=18, font=(FONT_FAMILY, 7, "bold"),
-                fg_color="#181A22", hover_color="#2B2E3D", text_color=t["text_muted"],
-                corner_radius=4, command=lambda: self._copy_to_clipboard(content)
-            )
-            btn_top_copy.pack(side="right", padx=(2, 0))
-
-            btn_edit = ctk.CTkButton(
-                head, text="✏️ Edit", width=44, height=18, font=(FONT_FAMILY, 7, "bold"),
-                fg_color="#181A22", hover_color="#2B2E3D", text_color=t["accent"],
-                corner_radius=4, command=lambda: self.open_edit_dialog(msg_idx, content, is_user=True)
-            )
-            btn_edit.pack(side="right", padx=(2, 2))
-
-            # Message Text
-            msg_lbl = ctk.CTkLabel(
-                bubble, text=content, font=(FONT_FAMILY, 9),
-                text_color=t["text_main"], justify="left", wraplength=480
-            )
-            msg_lbl.pack(anchor="w", padx=12, pady=(2, 4))
-
-            # Footer na may Bottom Copy
-            foot = ctk.CTkFrame(bubble, fg_color="transparent")
-            foot.pack(fill="x", padx=10, pady=(2, 6))
-
-            btn_bot_copy = ctk.CTkButton(
-                foot, text="📋 Copy Text", width=68, height=18, font=(FONT_FAMILY, 7),
-                fg_color="transparent", hover_color="#2A2418", text_color=t["text_muted"],
-                command=lambda: self._copy_to_clipboard(content)
-            )
-            btn_bot_copy.pack(side="right")
-
-            self._attach_context_menu(bubble, content, msg_idx, is_user=True)
-            self._attach_context_menu(msg_lbl, content, msg_idx, is_user=True)
-
         else:
-            bubble = ctk.CTkFrame(
-                row, fg_color=t["ai_bubble"], corner_radius=12,
-                border_width=1, border_color=t["ai_border"]
-            )
             bubble.pack(anchor="w", padx=(8, 80))
 
-            # Header na may Top Copy
-            card_head = ctk.CTkFrame(bubble, fg_color="transparent")
-            card_head.pack(fill="x", padx=12, pady=(6, 2))
+        # --- Top Header ---
+        head = ctk.CTkFrame(bubble, fg_color="transparent")
+        head.pack(fill="x", padx=10, pady=(6, 2))
 
-            header = ctk.CTkLabel(card_head, text="✧ SIRENFLOW", font=(FONT_FAMILY, 8, "bold"), text_color=t["accent"])
-            header.pack(side="left")
+        title_text = "YOU" if is_user else "✧ SIRENFLOW"
+        ctk.CTkLabel(head, text=title_text, font=(FONT_FAMILY, 8, "bold"), text_color=t["accent"]).pack(side="left")
 
-            btn_top_copy = ctk.CTkButton(
-                card_head, text="📋 Copy", width=50, height=18,
-                font=(FONT_FAMILY, 7, "bold"), fg_color="#181A22",
-                hover_color="#2B2E3D", text_color=t["text_muted"],
-                corner_radius=4, command=lambda: self._copy_to_clipboard(content)
-            )
-            btn_top_copy.pack(side="right", padx=(2, 0))
+        btn_top_copy = ctk.CTkButton(
+            head, text="Copy", width=46, height=18, font=(FONT_FAMILY, 7, "bold"),
+            fg_color="#181A22", hover_color="#2B2E3D", text_color=t["text_muted"],
+            corner_radius=4, command=lambda: self._copy_to_clipboard(content)
+        )
+        btn_top_copy.pack(side="right", padx=(2, 0))
 
-            btn_edit = ctk.CTkButton(
-                card_head, text="✏️ Edit", width=44, height=18, font=(FONT_FAMILY, 7),
-                fg_color="#181A22", hover_color="#2B2E3D", text_color=t["text_muted"],
-                corner_radius=4, command=lambda: self.open_edit_dialog(msg_idx, content, is_user=False)
-            )
-            btn_edit.pack(side="right", padx=(2, 2))
+        btn_edit = ctk.CTkButton(
+            head, text="Edit", width=42, height=18, font=(FONT_FAMILY, 7),
+            fg_color="#181A22", hover_color="#2B2E3D", text_color=t["accent"] if is_user else t["text_muted"],
+            corner_radius=4, command=lambda: self.open_edit_dialog(msg_idx, content, is_user)
+        )
+        btn_edit.pack(side="right", padx=(2, 2))
 
-            # Message Text
-            msg_lbl = ctk.CTkLabel(
-                bubble, text=content, font=(FONT_FAMILY, 9),
-                text_color=t["text_main"], justify="left", wraplength=520
-            )
-            msg_lbl.pack(anchor="w", padx=12, pady=(2, 4))
+        # --- Borderless Textbox with Blue-Line Cursor Selection ---
+        init_h = self._calc_text_height(content)
+        txt_box = tk.Text(
+            bubble,
+            bg=bubble_color,
+            fg=t["text_main"],
+            font=(FONT_FAMILY, 10),
+            wrap="word",
+            relief="flat",
+            bd=0,
+            highlightthickness=0,
+            selectbackground="#0D6EFD",   # Vibrant Blue Cursor Selection Highlight
+            selectforeground="#FFFFFF",
+            insertwidth=0,
+            cursor="xterm",
+            height=init_h,
+            width=58
+        )
+        txt_box.pack(fill="both", expand=True, padx=12, pady=(2, 4))
+        txt_box.insert("1.0", content)
 
-            # Footer na may Bottom Copy
-            foot = ctk.CTkFrame(bubble, fg_color="transparent")
-            foot.pack(fill="x", padx=12, pady=(2, 6))
+        # Allow mouse drag selection & Copy shortcut, prevent typing directly into bubble
+        def _prevent_typing(e):
+            if (e.state & 4 or e.state & 8) and e.keysym.lower() in ('c', 'a'):
+                return None
+            return "break"
 
-            btn_bot_copy = ctk.CTkButton(
-                foot, text="📋 Copy Response", width=85, height=18, font=(FONT_FAMILY, 7),
-                fg_color="transparent", hover_color="#1A1D27", text_color=t["text_muted"],
-                command=lambda: self._copy_to_clipboard(content)
-            )
-            btn_bot_copy.pack(side="left")
+        txt_box.bind("<Key>", _prevent_typing)
 
-            self._attach_context_menu(bubble, content, msg_idx, is_user=False)
-            self._attach_context_menu(msg_lbl, content, msg_idx, is_user=False)
+        # Precise auto-height adjustment
+        def _adjust_height():
+            try:
+                txt_box.update_idletasks()
+                d_lines = txt_box.count("1.0", "end-1c", "displaylines")
+                if d_lines and d_lines[0] > 0:
+                    txt_box.configure(height=d_lines[0])
+            except Exception:
+                pass
+
+        self.after(20, _adjust_height)
+
+        # --- Bottom Footer (Second Copy Button) ---
+        foot = ctk.CTkFrame(bubble, fg_color="transparent")
+        foot.pack(fill="x", padx=10, pady=(2, 6))
+
+        btn_bot_copy = ctk.CTkButton(
+            foot, text="Copy Text", width=75, height=18, font=(FONT_FAMILY, 7),
+            fg_color="transparent", hover_color="#202330", text_color=t["text_muted"],
+            command=lambda: self._copy_to_clipboard(content)
+        )
+        btn_bot_copy.pack(side="right" if is_user else "left")
+
+        # Context Menus
+        self._attach_context_menu(bubble, txt_box, content, msg_idx, is_user)
+        self._attach_context_menu(txt_box, txt_box, content, msg_idx, is_user)
 
         self._scroll_to_bottom()
-        return msg_lbl
+        return txt_box
 
     def _create_image_bubble(self, prompt, pil_image, ratio_label):
         t = self.theme
@@ -649,7 +655,7 @@ class SirenFlowAIApp(ctk.CTk):
         ctk.CTkLabel(head, text=f"✧ SIRENFLOW STUDIO  •  {ratio_label}", font=(FONT_FAMILY, 8, "bold"), text_color=t["accent"]).pack(side="left")
 
         btn_save = ctk.CTkButton(
-            head, text="💾 Save PNG", width=75, height=20, font=(FONT_FAMILY, 8, "bold"),
+            head, text="Save PNG", width=75, height=20, font=(FONT_FAMILY, 8, "bold"),
             fg_color=t["accent"], hover_color=t["accent_hover"], text_color="#08090B",
             corner_radius=4, command=lambda img=pil_image: self._save_image_to_disk(img)
         )
@@ -773,7 +779,7 @@ class SirenFlowAIApp(ctk.CTk):
         try:
             res = requests.get(image_url, headers=headers, timeout=85)
             if self.stop_requested:
-                self.after(0, lambda: self._create_bubble("assistant", "⚠️ Image generation aborted by user."))
+                self.after(0, lambda: self._create_bubble("assistant", "Image generation aborted by user."))
                 return
 
             if res.status_code == 200:
@@ -784,23 +790,36 @@ class SirenFlowAIApp(ctk.CTk):
                 self.after(0, lambda: self._create_image_bubble(prompt, pil_image, ratio_label))
                 self.after(0, self.bell)
             else:
-                err_text = f"⚠️ Image engine returned HTTP {res.status_code}"
+                err_text = f"Image engine returned HTTP {res.status_code}"
                 self.after(0, lambda: self._create_bubble("assistant", err_text))
         except Exception as e:
             if not self.stop_requested:
-                err_text = f"⚠️ Generation error: {e}"
+                err_text = f"Generation error: {e}"
                 self.after(0, lambda: self._create_bubble("assistant", err_text))
         finally:
             self.after(0, lambda: self._set_generation_state(False))
 
     # -------------------------------------------------------------
-    # SESSIONS VAULT: PERSISTENCE, RENAME & DELETE
+    # SESSIONS VAULT: ABSOLUTE PERSISTENCE & NEW BLACK CHAT
     # -------------------------------------------------------------
     def _sync_and_save_current_chat(self):
+        if not self.current_chat_id:
+            return
+        found = False
         for c in self.chats:
             if c["id"] == self.current_chat_id:
-                c["messages"] = self.current_messages
+                c["messages"] = list(self.current_messages)
+                found = True
                 break
+        if not found and self.current_messages:
+            first_msg = self.current_messages[0]["content"]
+            title = first_msg[:20] + "..." if len(first_msg) > 20 else first_msg
+            self.chats.append({
+                "id": self.current_chat_id,
+                "title": title,
+                "created_at": datetime.datetime.now().isoformat(),
+                "messages": list(self.current_messages)
+            })
         save_chats(self.chats)
 
     def _refresh_sidebar_list(self):
@@ -866,34 +885,49 @@ class SirenFlowAIApp(ctk.CTk):
         self.chats = [c for c in self.chats if c["id"] != chat_id]
         save_chats(self.chats)
         if self.current_chat_id == chat_id:
-            self.start_new_chat(render_welcome=True)
+            self.start_new_chat(render_welcome=False)
         else:
             self._refresh_sidebar_list()
 
-    def start_new_chat(self, render_welcome=True):
+    def start_new_chat(self, render_welcome=False):
+        # I-save muna ang kasalukuyang session para HINDI MAWALA
+        if self.current_chat_id and self.current_messages:
+            self._sync_and_save_current_chat()
+
         self.current_chat_id = None
         self.current_messages = []
         self._refresh_sidebar_list()
 
+        # Linisin ang buong workspace papuntang malinis na black canvas
         for widget in self.scroll_messages.winfo_children():
             widget.destroy()
 
-        if render_welcome:
-            welcome_text = (
-                "Welcome to SirenFlow AI Private Luxury Studio.\n\n"
-                "• Uncensored Chat & Scriptwriting (3,000 tokens).\n"
-                "• Real-Time Token Saver: Pindutin ang [⏹ Stop] kung may maling nachat.\n"
-                "• Edit & Copy: Right-click saanman o gamitin ang mga buttons sa taas at baba ng bubble."
-            )
-            self._create_bubble("assistant", welcome_text)
+        # Elegant minimal English banner (Pure Black Chat)
+        t = self.theme
+        welcome_frame = ctk.CTkFrame(self.scroll_messages, fg_color="transparent")
+        welcome_frame.pack(fill="both", expand=True, pady=60)
+
+        ctk.CTkLabel(
+            welcome_frame, text="✦ SIRENFLOW PRIVATE STUDIO",
+            font=(FONT_FAMILY, 14, "bold"), text_color=t["accent"]
+        ).pack(pady=(0, 4))
+
+        ctk.CTkLabel(
+            welcome_frame, text="Uncensored Intelligence • 3,000 Tokens • FLUX.1 Engine Ready",
+            font=(FONT_FAMILY, 9), text_color=t["text_muted"]
+        ).pack()
 
     def load_chat_by_id(self, chat_id):
+        # I-save muna ang ginagawang session bago lumipat
+        if self.current_chat_id and self.current_messages:
+            self._sync_and_save_current_chat()
+
         target = next((c for c in self.chats if c["id"] == chat_id), None)
         if not target:
             return
 
         self.current_chat_id = chat_id
-        self.current_messages = target.get("messages", [])
+        self.current_messages = list(target.get("messages", []))
         self._refresh_sidebar_list()
 
         for widget in self.scroll_messages.winfo_children():
@@ -903,7 +937,7 @@ class SirenFlowAIApp(ctk.CTk):
             self._create_bubble(msg["role"], msg["content"], msg_idx=idx)
 
     # -------------------------------------------------------------
-    # STREAMING CHAT & TOKEN-SAVER STOP ENGINE
+    # TEXT CHAT & OPENROUTER STREAMING ENGINE
     # -------------------------------------------------------------
     def send_message(self):
         query = self.entry_user.get().strip()
@@ -912,7 +946,11 @@ class SirenFlowAIApp(ctk.CTk):
 
         self.entry_user.delete(0, "end")
 
+        # Kung malinis ang screen, burahin ang welcome banner sa unang message
         if self.current_chat_id is None:
+            for widget in self.scroll_messages.winfo_children():
+                widget.destroy()
+
             self.current_chat_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             title_snippet = query[:20] + "..." if len(query) > 20 else query
             new_session = {
@@ -935,7 +973,7 @@ class SirenFlowAIApp(ctk.CTk):
     def _query_openrouter_streaming(self, user_msg):
         api_key = self.cfg.get("openrouter_api_key", "").strip()
         if not api_key:
-            warn_msg = "⚠️ Warning: OpenRouter API Key is empty! Open ⚙️ Preferences to authenticate."
+            warn_msg = "Warning: OpenRouter API Key is empty. Open Preferences to authenticate."
             self.current_messages.append({"role": "assistant", "content": warn_msg})
             self._sync_and_save_current_chat()
             self.after(0, lambda: self._create_bubble("assistant", warn_msg))
@@ -950,7 +988,7 @@ class SirenFlowAIApp(ctk.CTk):
             "messages": messages,
             "temperature": self.cfg.get("temperature", 0.75),
             "max_tokens": 3000,
-            "stream": True  # Nagbibigay-daan para maputol agad ang token generation kapag pinindot ang Stop
+            "stream": True
         }
 
         headers = {
@@ -960,13 +998,12 @@ class SirenFlowAIApp(ctk.CTk):
             "Content-Type": "application/json"
         }
 
-        # Maghanda ng placeholder bubble para sa real-time response
         placeholder_idx = len(self.current_messages)
-        ai_label_holder = []
+        ai_box_holder = []
 
         def _init_ai_bubble():
-            lbl = self._create_bubble("assistant", "✧ Thinking...", msg_idx=placeholder_idx)
-            ai_label_holder.append(lbl)
+            txt_w = self._create_bubble("assistant", "Thinking...", msg_idx=placeholder_idx)
+            ai_box_holder.append(txt_w)
 
         self.after(0, _init_ai_bubble)
 
@@ -983,7 +1020,7 @@ class SirenFlowAIApp(ctk.CTk):
             if res.status_code == 200:
                 for line in res.iter_lines():
                     if self.stop_requested:
-                        full_answer += "\n\n*[⏹ Generation stopped by user - tokens saved]*"
+                        full_answer += "\n\n[Generation stopped by user - tokens saved]"
                         break
 
                     if line:
@@ -998,18 +1035,25 @@ class SirenFlowAIApp(ctk.CTk):
                                 if delta_text:
                                     full_answer += delta_text
                                     chunk_counter += 1
-                                    # I-update ang bubble bawat 2-3 tokens para smooth
-                                    if chunk_counter % 2 == 0 and ai_label_holder:
-                                        target_lbl = ai_label_holder[0]
-                                        self.after(0, lambda txt=full_answer, l=target_lbl: l.configure(text=txt))
+                                    if chunk_counter % 2 == 0 and ai_box_holder:
+                                        target_box = ai_box_holder[0]
+                                        def _stream_update(txt=full_answer, b=target_box):
+                                            b.delete("1.0", "end")
+                                            b.insert("1.0", txt)
+                                            b.configure(height=self._calc_text_height(txt))
+                                        self.after(0, _stream_update)
                                         self.after(0, self._scroll_to_bottom)
                             except Exception:
                                 pass
 
-                # Final update sa text
-                if ai_label_holder:
+                # Final update
+                if ai_box_holder:
                     final_txt = full_answer if full_answer.strip() else "[No response generated]"
-                    self.after(0, lambda txt=final_txt, l=ai_label_holder[0]: l.configure(text=txt))
+                    def _finalize(txt=final_txt, b=ai_box_holder[0]):
+                        b.delete("1.0", "end")
+                        b.insert("1.0", txt)
+                        b.configure(height=self._calc_text_height(txt))
+                    self.after(0, _finalize)
                     self.after(0, self._scroll_to_bottom)
 
                 self.current_messages.append({"role": "assistant", "content": full_answer})
@@ -1017,17 +1061,23 @@ class SirenFlowAIApp(ctk.CTk):
                 self.after(0, self.bell)
 
             else:
-                err_text = f"⚠️ [Engine Error {res.status_code}]: {res.text[:120]}"
-                if ai_label_holder:
-                    self.after(0, lambda txt=err_text, l=ai_label_holder[0]: l.configure(text=txt))
+                err_text = f"Engine Error {res.status_code}: {res.text[:120]}"
+                if ai_box_holder:
+                    def _err_update(txt=err_text, b=ai_box_holder[0]):
+                        b.delete("1.0", "end")
+                        b.insert("1.0", txt)
+                    self.after(0, _err_update)
                 self.current_messages.append({"role": "assistant", "content": err_text})
                 self._sync_and_save_current_chat()
 
         except Exception as e:
             if not self.stop_requested:
-                err_text = f"⚠️ [Connection Interrupted]: {e}"
-                if ai_label_holder:
-                    self.after(0, lambda txt=err_text, l=ai_label_holder[0]: l.configure(text=txt))
+                err_text = f"Connection Interrupted: {e}"
+                if ai_box_holder:
+                    def _conn_err(txt=err_text, b=ai_box_holder[0]):
+                        b.delete("1.0", "end")
+                        b.insert("1.0", txt)
+                    self.after(0, _conn_err)
                 self.current_messages.append({"role": "assistant", "content": err_text})
                 self._sync_and_save_current_chat()
         finally:
