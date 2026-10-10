@@ -603,7 +603,6 @@ class SirenFlowAIApp(ctk.CTk):
         txt_box.pack(fill="both", expand=True, padx=12, pady=(2, 4))
         txt_box.insert("1.0", content)
 
-        # Allow mouse drag selection & Copy shortcut, prevent typing directly into bubble
         def _prevent_typing(e):
             if (e.state & 4 or e.state & 8) and e.keysym.lower() in ('c', 'a'):
                 return None
@@ -611,7 +610,6 @@ class SirenFlowAIApp(ctk.CTk):
 
         txt_box.bind("<Key>", _prevent_typing)
 
-        # Precise auto-height adjustment
         def _adjust_height():
             try:
                 txt_box.update_idletasks()
@@ -837,11 +835,12 @@ class SirenFlowAIApp(ctk.CTk):
             title = chat.get("title", "Untitled Session")
             is_active = (chat_id == self.current_chat_id)
 
+            # INAYOS DITO: t["bg_sidebar"] na ang default border_color imbes na "transparent"
             row = ctk.CTkFrame(
                 self.chats_scroll,
                 fg_color=t["user_bubble"] if is_active else "transparent",
                 border_width=1 if is_active else 0,
-                border_color=t["accent"] if is_active else "transparent",
+                border_color=t["accent"] if is_active else t["bg_sidebar"],
                 corner_radius=6, height=32
             )
             row.pack(fill="x", pady=2)
@@ -890,7 +889,6 @@ class SirenFlowAIApp(ctk.CTk):
             self._refresh_sidebar_list()
 
     def start_new_chat(self, render_welcome=False):
-        # I-save muna ang kasalukuyang session para HINDI MAWALA
         if self.current_chat_id and self.current_messages:
             self._sync_and_save_current_chat()
 
@@ -898,11 +896,9 @@ class SirenFlowAIApp(ctk.CTk):
         self.current_messages = []
         self._refresh_sidebar_list()
 
-        # Linisin ang buong workspace papuntang malinis na black canvas
         for widget in self.scroll_messages.winfo_children():
             widget.destroy()
 
-        # Elegant minimal English banner (Pure Black Chat)
         t = self.theme
         welcome_frame = ctk.CTkFrame(self.scroll_messages, fg_color="transparent")
         welcome_frame.pack(fill="both", expand=True, pady=60)
@@ -918,7 +914,6 @@ class SirenFlowAIApp(ctk.CTk):
         ).pack()
 
     def load_chat_by_id(self, chat_id):
-        # I-save muna ang ginagawang session bago lumipat
         if self.current_chat_id and self.current_messages:
             self._sync_and_save_current_chat()
 
@@ -946,7 +941,6 @@ class SirenFlowAIApp(ctk.CTk):
 
         self.entry_user.delete(0, "end")
 
-        # Kung malinis ang screen, burahin ang welcome banner sa unang message
         if self.current_chat_id is None:
             for widget in self.scroll_messages.winfo_children():
                 widget.destroy()
@@ -1046,7 +1040,6 @@ class SirenFlowAIApp(ctk.CTk):
                             except Exception:
                                 pass
 
-                # Final update
                 if ai_box_holder:
                     final_txt = full_answer if full_answer.strip() else "[No response generated]"
                     def _finalize(txt=final_txt, b=ai_box_holder[0]):
