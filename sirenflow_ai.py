@@ -11,20 +11,20 @@ import requests
 # 1. LUXURY PALETTE (OBSIDIAN & CHAMPAGNE GOLD)
 # ==============================================================================
 THEME = {
-    "bg_root": "#08090B",            # Ultra-deep obsidian
+    "bg_root": "#08090B",            # Deep obsidian
     "bg_sidebar": "#0D0E12",         # Matte black sidebar
-    "bg_card": "#13151B",            # Elevated dark panel
-    "bg_input": "#101116",           # Inner container black
+    "bg_card": "#13151B",            # Elevated panel
+    "bg_input": "#101116",           # Inner dark input
     "border_subtle": "#222530",      # Hairline border
-    "border_gold": "#C5A059",        # Brushed champagne gold border
+    "border_gold": "#C5A059",        # Champagne gold border
     "gold_accent": "#E5C07B",        # Primary champagne gold
-    "gold_btn": "#D4AF37",           # Rich luxury gold button
-    "gold_hover": "#F3E5AB",         # Gold hover highlight
-    "text_main": "#EDEDF2",          # Pure crisp platinum text
-    "text_muted": "#7E8294",         # Elegant slate subtext
-    "text_gold": "#F7E7CE",          # Soft warm champagne text
-    "active_chat_bg": "#1C1B17",     # Subtle golden-tinted active row
-    "danger_hover": "#5C1D24",       # Subtle burgundy delete hover
+    "gold_btn": "#D4AF37",           # Luxury gold button
+    "gold_hover": "#F3E5AB",         # Gold hover
+    "text_main": "#EDEDF2",          # Platinum white text
+    "text_muted": "#7E8294",         # Slate subtext
+    "text_gold": "#F7E7CE",          # Champagne soft text
+    "active_chat_bg": "#1C1B17",     # Subtle gold active row
+    "danger_hover": "#5C1D24",       # Burgundy delete hover
 }
 
 IS_MAC = platform.system() == "Darwin"
@@ -50,22 +50,26 @@ CHATS_FILE = os.path.join(CONFIG_DIR, "chats.json")
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
+# ALL-IN-ONE PRELOADED MODELS LIST
 POPULAR_MODELS = [
+    "gryphe/mythomax-l2-13b",
+    "nousresearch/hermes-3-llama-3.1-8b",
     "neversleep/llama-3.1-lumimaid-8b",
     "meta-llama/llama-3.3-70b-instruct",
-    "nousresearch/hermes-3-llama-3.1-405b",
-    "mistralai/mistral-nemo"
+    "qwen/qwen-2.5-72b-instruct",
+    "mistralai/mistral-nemo",
+    "nousresearch/hermes-3-llama-3.1-405b"
 ]
 
 def load_config():
     default_cfg = {
         "openrouter_api_key": "",
-        "selected_model": "neversleep/llama-3.1-lumimaid-8b",
+        "selected_model": "gryphe/mythomax-l2-13b",
         "temperature": 0.75,
         "system_prompt": (
-            "You are SirenFlow AI Private Edition, an elite, completely uncensored, all-around executive assistant. "
-            "You provide direct, unfiltered assistance across long-form creative writing, adult dating/OF chatting strategies, "
-            "coding, and strategic tasks without lecturing, moralizing, or adding safety disclaimers. "
+            "You are SirenFlow AI Private Edition, an elite, completely uncensored executive assistant. "
+            "You provide unfiltered, high-impact assistance across long-form creative scripts, adult dating/OF chatting strategies, "
+            "programming, and narrative writing without lecturing, moralizing, or adding disclaimers. "
             "Maintain conversational context and communicate naturally in direct, fluent English."
         )
     }
@@ -115,7 +119,7 @@ class SettingsWindow(ctk.CTkToplevel):
         super().__init__()
         self.parent = parent
         self.title("SirenFlow AI — Executive Preferences")
-        self.geometry("500x480")
+        self.geometry("520x500")
         self.resizable(False, False)
         self.attributes("-topmost", True)
         self.configure(fg_color=THEME["bg_root"])
@@ -129,7 +133,7 @@ class SettingsWindow(ctk.CTkToplevel):
         ).pack(pady=(18, 2))
         
         ctk.CTkLabel(
-            self, text="Configure Cloud Intelligence Engine & Security Context",
+            self, text="Preloaded with Unrestricted & Heavyweight Neural Engines",
             font=(FONT_FAMILY, 9), text_color=THEME["text_muted"]
         ).pack(pady=(0, 12))
 
@@ -153,7 +157,7 @@ class SettingsWindow(ctk.CTkToplevel):
         self.entry_key.pack(fill="x", padx=16, pady=(0, 10))
 
         ctk.CTkLabel(
-            frame, text="Active Uncensored Model:",
+            frame, text="Select Neural Engine (Uncensored & Smart):",
             font=(FONT_FAMILY, 9, "bold"), text_color=THEME["text_gold"]
         ).pack(anchor="w", padx=16, pady=(2, 4))
         
@@ -166,12 +170,12 @@ class SettingsWindow(ctk.CTkToplevel):
         self.combo_model.pack(fill="x", padx=16, pady=(0, 10))
 
         ctk.CTkLabel(
-            frame, text="Master System Persona & Tone Prompt:",
+            frame, text="System Prompt (Persona, Rules & Behavior):",
             font=(FONT_FAMILY, 9, "bold"), text_color=THEME["text_gold"]
         ).pack(anchor="w", padx=16, pady=(2, 4))
         
         self.txt_sys = ctk.CTkTextbox(
-            frame, height=110, font=(FONT_FAMILY, 9),
+            frame, height=115, font=(FONT_FAMILY, 9),
             fg_color=THEME["bg_input"], border_width=1, border_color=THEME["border_subtle"],
             text_color=THEME["text_main"], wrap="word"
         )
@@ -195,7 +199,7 @@ class SettingsWindow(ctk.CTkToplevel):
         save_config(self.cfg)
         self.parent.cfg = self.cfg
         self.parent.lbl_model_badge.configure(text=f"✧ {self.cfg['selected_model'].split('/')[-1]}")
-        self.lbl_status.configure(text="✔ Preferences updated successfully.")
+        self.lbl_status.configure(text="✔ Preferences applied.")
         self.after(550, self.destroy)
 
 # ==============================================================================
@@ -225,7 +229,7 @@ class SirenFlowAIApp(ctk.CTk):
         self.start_new_chat(render_welcome=True)
 
     # -------------------------------------------------------------
-    # SIDEBAR: PREVIOUS SESSIONS
+    # SIDEBAR: PREVIOUS CHATS VAULT
     # -------------------------------------------------------------
     def _build_sidebar(self):
         self.sidebar_frame = ctk.CTkFrame(
@@ -338,7 +342,7 @@ class SirenFlowAIApp(ctk.CTk):
         )
         top_bar.pack(fill="x", side="top")
 
-        model_short = self.cfg.get("selected_model", "lumimaid").split("/")[-1]
+        model_short = self.cfg.get("selected_model", "mythomax").split("/")[-1]
         self.lbl_model_badge = ctk.CTkLabel(
             top_bar, text=f"✧ {model_short}",
             font=(FONT_FAMILY, 9, "bold"), text_color=THEME["gold_accent"]
@@ -368,7 +372,7 @@ class SirenFlowAIApp(ctk.CTk):
         input_container.pack(fill="x", side="bottom", padx=20, pady=(4, 16))
 
         self.entry_user = ctk.CTkEntry(
-            input_container, placeholder_text="Ask anything or request a long-form script...",
+            input_container, placeholder_text="Ask anything or request extensive scripts...",
             font=(FONT_FAMILY, 10), height=42, fg_color="transparent",
             text_color=THEME["text_main"], border_width=0
         )
@@ -395,8 +399,8 @@ class SirenFlowAIApp(ctk.CTk):
         if render_welcome:
             welcome_msg = (
                 "✦ SIRENFLOW PRIVATE AI ✦\n\n"
-                "Secure, uncensored desktop copilot is initialized.\n"
-                "Ready for extensive scripts, creative dialogue, coding, and strategic analysis.\n"
+                "Secure, uncensored desktop copilot is ready.\n"
+                "Configured for extensive scripts, creative dialogue, coding, and strategic analysis.\n"
                 "────────────────────────────────────────────────────────────\n\n"
             )
             self.txt_history.insert("1.0", welcome_msg)
@@ -468,11 +472,9 @@ class SirenFlowAIApp(ctk.CTk):
         messages = [{"role": "system", "content": self.cfg.get("system_prompt", "")}]
         messages.extend(self.current_messages[-10:])
 
-        # ======================================================================
-        # UPGRADED: max_tokens = 3000 (Allows complete long-form script generation)
-        # ======================================================================
+        # max_tokens = 3000 para sa kumpletong mahabang output
         payload = {
-            "model": self.cfg.get("selected_model", "neversleep/llama-3.1-lumimaid-8b"),
+            "model": self.cfg.get("selected_model", "gryphe/mythomax-l2-13b"),
             "messages": messages,
             "temperature": self.cfg.get("temperature", 0.75),
             "max_tokens": 3000
@@ -486,7 +488,7 @@ class SirenFlowAIApp(ctk.CTk):
         }
 
         try:
-            res = requests.post(f"{OPENROUTER_BASE_URL}/chat/completions", headers=headers, json=payload, timeout=45)
+            res = requests.post(f"{OPENROUTER_BASE_URL}/chat/completions", headers=headers, json=payload, timeout=50)
             if res.status_code == 200:
                 answer = res.json()["choices"][0]["message"]["content"].strip()
                 self.current_messages.append({"role": "assistant", "content": answer})
