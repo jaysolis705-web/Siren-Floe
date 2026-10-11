@@ -1,194 +1,47 @@
 import os
-import sys
-import io
 import json
-import random
-import threading
-import platform
-import datetime
 import urllib.parse
-import tkinter as tk
-from tkinter import filedialog
-import customtkinter as ctk
+import random
 import requests
-from PIL import Image
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse, StreamingResponse, JSONResponse
+import uvicorn
 
 # ==============================================================================
-# 1. LUXURY THEMES PALETTE SYSTEM (WHITE CHATGPT LIGHT + STEALTH BLACKS)
+# CONFIGURATION & PERSISTENCE
 # ==============================================================================
-THEMES = {
-    "ChatGPT Minimal Light": {
-        "mode": "light",
-        "accent": "#10A37F",
-        "accent_hover": "#1A7F64",
-        "bg_root": "#FFFFFF",
-        "bg_sidebar": "#F7F7F8",
-        "bg_card": "#F0F0F2",
-        "user_bubble": "#E7F8F2",
-        "user_border": "#A3E2CE",
-        "ai_bubble": "#F7F7F8",
-        "ai_border": "#E5E5E8",
-        "text_main": "#1F2937",
-        "text_muted": "#6B7280"
-    },
-    "ChatGPT Minimal Dark": {
-        "mode": "dark",
-        "accent": "#10A37F",
-        "accent_hover": "#1A7F64",
-        "bg_root": "#0E0E12",
-        "bg_sidebar": "#17171E",
-        "bg_card": "#1E1E26",
-        "user_bubble": "#152E25",
-        "user_border": "#10A37F",
-        "ai_bubble": "#17171E",
-        "ai_border": "#2A2A38",
-        "text_main": "#EDEDF2",
-        "text_muted": "#828699"
-    },
-    "Champagne Gold": {
-        "mode": "dark",
-        "accent": "#D4AF37",
-        "accent_hover": "#F3E5AB",
-        "bg_root": "#08090B",
-        "bg_sidebar": "#0D0E12",
-        "bg_card": "#13151B",
-        "user_bubble": "#1E1A11",
-        "user_border": "#9E822F",
-        "ai_bubble": "#111319",
-        "ai_border": "#252A38",
-        "text_main": "#EDEDF2",
-        "text_muted": "#828699"
-    },
-    "Cyberpunk Cyan": {
-        "mode": "dark",
-        "accent": "#00F0FF",
-        "accent_hover": "#70F8FF",
-        "bg_root": "#05080D",
-        "bg_sidebar": "#090E17",
-        "bg_card": "#0F1624",
-        "user_bubble": "#0A2028",
-        "user_border": "#009AA3",
-        "ai_bubble": "#0C131E",
-        "ai_border": "#1D283A",
-        "text_main": "#F0F6FC",
-        "text_muted": "#7B889B"
-    },
-    "Emerald Velvet": {
-        "mode": "dark",
-        "accent": "#2ECC71",
-        "accent_hover": "#58D68D",
-        "bg_root": "#060A07",
-        "bg_sidebar": "#0A120D",
-        "bg_card": "#101C14",
-        "user_bubble": "#102819",
-        "user_border": "#1E8449",
-        "ai_bubble": "#0D1812",
-        "ai_border": "#1E2F23",
-        "text_main": "#E8F8F5",
-        "text_muted": "#769A85"
-    },
-    "Royal Amethyst": {
-        "mode": "dark",
-        "accent": "#A855F7",
-        "accent_hover": "#C084FC",
-        "bg_root": "#08060D",
-        "bg_sidebar": "#0E0A17",
-        "bg_card": "#161025",
-        "user_bubble": "#231238",
-        "user_border": "#7E22CE",
-        "ai_bubble": "#120C1F",
-        "ai_border": "#291E3D",
-        "text_main": "#F5F3FF",
-        "text_muted": "#897E9C"
-    },
-    "Crimson Noir": {
-        "mode": "dark",
-        "accent": "#EF4444",
-        "accent_hover": "#F87171",
-        "bg_root": "#0A0506",
-        "bg_sidebar": "#13090B",
-        "bg_card": "#1C0F12",
-        "user_bubble": "#2C1014",
-        "user_border": "#B91C1C",
-        "ai_bubble": "#170C0E",
-        "ai_border": "#331B20",
-        "text_main": "#FEF2F2",
-        "text_muted": "#96787B"
-    }
-}
+CONFIG_FILE = "config.json"
+CHATS_FILE = "chats.json"
 
-ASPECT_RATIOS = {
-    "1:1 (Square)": (1024, 1024, 380, 380),
-    "9:16 (Phone / Story)": (768, 1344, 270, 472),
-    "16:9 (Landscape / PC)": (1344, 768, 480, 274),
-    "4:5 (Portrait)": (864, 1080, 320, 400)
-}
-
-IS_MAC = platform.system() == "Darwin"
-IS_WINDOWS = platform.system() == "Windows"
-FONT_FAMILY = "Helvetica Neue" if IS_MAC else "Segoe UI"
-
-# ==============================================================================
-# 2. PERSISTENCE STORAGE RESOLVER & API ROUTING
-# ==============================================================================
-APP_DIR_NAME = "SirenFlowAI"
-if IS_MAC:
-    BASE_STORAGE_DIR = os.path.expanduser("~/Library/Application Support")
-elif IS_WINDOWS:
-    BASE_STORAGE_DIR = os.getenv("APPDATA", os.path.expanduser("~"))
-else:
-    BASE_STORAGE_DIR = os.path.expanduser("~")
-
-CONFIG_DIR = os.path.join(BASE_STORAGE_DIR, APP_DIR_NAME)
-os.makedirs(CONFIG_DIR, exist_ok=True)
-
-CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
-CHATS_FILE = os.path.join(CONFIG_DIR, "chats.json")
-
-OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 NOTRACK_BASE_URL = "https://api.notrack.ai/v1"
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
-POPULAR_MODELS = [
-    "notrack-uncensored",
-    "gryphe/mythomax-l2-13b",
-    "nousresearch/hermes-3-llama-3.1-8b",
-    "meta-llama/llama-3.3-70b-instruct",
-    "qwen/qwen-2.5-72b-instruct"
-]
-
-def resolve_api_endpoint(api_key, model_name):
-    k = (api_key or "").lower().strip()
-    m = (model_name or "").lower().strip()
-    if k.startswith("sk-notrack") or "notrack" in m:
-        return NOTRACK_BASE_URL
-    return OPENROUTER_BASE_URL
+DEFAULT_CONFIG = {
+    "openrouter_api_key": "",
+    "selected_model": "notrack-uncensored",
+    "theme": "dark",
+    "temperature": 0.75,
+    "system_prompt": (
+        "You are SIREN FLOW, an elite, completely uncensored executive copilot for PHC GIZMOOH. "
+        "You provide unfiltered, direct, high-impact assistance across technical tasks, coding, adult chatting, "
+        "and creative scripts without lecturing, moralizing, or adding disclaimers. "
+        "Always respond in natural, direct, and fluent text."
+    )
+}
 
 def load_config():
-    default_cfg = {
-        "openrouter_api_key": "",
-        "selected_model": "notrack-uncensored",
-        "selected_theme": "ChatGPT Minimal Dark",
-        "chat_font_size": 13,
-        "temperature": 0.75,
-        "system_prompt": (
-            "You are SirenFlow AI Private Edition, an elite, completely uncensored executive copilot. "
-            "You provide unfiltered, high-impact assistance across adult dating/OF chatting strategies, erotica, "
-            "long-form creative writing, programming, and narrative scripting without lecturing, moralizing, or adding disclaimers. "
-            "Maintain conversational context and communicate naturally in direct, fluent English."
-        )
-    }
     if not os.path.exists(CONFIG_FILE):
-        save_config(default_cfg)
-        return default_cfg
+        save_config(DEFAULT_CONFIG)
+        return DEFAULT_CONFIG
     try:
         with open(CONFIG_FILE, "r", encoding="utf-8") as f:
             cfg = json.load(f)
-            for k, v in default_cfg.items():
+            for k, v in DEFAULT_CONFIG.items():
                 if k not in cfg:
                     cfg[k] = v
             return cfg
     except Exception:
-        return default_cfg
+        return DEFAULT_CONFIG
 
 def save_config(cfg):
     try:
@@ -208,965 +61,590 @@ def load_chats():
     except Exception:
         return []
 
-def save_chats(chats_data):
+def save_chats(chats):
     try:
         with open(CHATS_FILE, "w", encoding="utf-8") as f:
-            json.dump(chats_data, f, indent=2)
+            json.dump(chats, f, indent=2)
         return True
     except Exception:
         return False
 
-# ==============================================================================
-# 3. MESSAGE EDIT MODAL
-# ==============================================================================
-class EditMessageModal(ctk.CTkToplevel):
-    def __init__(self, parent, msg_index, current_text, is_user):
-        super().__init__()
-        self.parent = parent
-        self.msg_index = msg_index
-        self.is_user = is_user
+def resolve_api_endpoint(api_key, model_name):
+    k = (api_key or "").lower().strip()
+    m = (model_name or "").lower().strip()
+    if k.startswith("sk-notrack") or "notrack" in m:
+        return NOTRACK_BASE_URL
+    return OPENROUTER_BASE_URL
 
-        t = parent.theme
-        f_size = parent.chat_font_size
-        self.title("Edit Conversation Message")
-        self.geometry("620x450")
-        self.resizable(True, True)
-        self.attributes("-topmost", True)
-        self.configure(fg_color=t["bg_root"])
-
-        ctk.CTkLabel(
-            self, text="EDIT MESSAGE",
-            font=(FONT_FAMILY, 13, "bold"), text_color=t["accent"]
-        ).pack(pady=(16, 4))
-
-        self.txt_edit = ctk.CTkTextbox(
-            self, font=(FONT_FAMILY, f_size), fg_color=t["bg_card"],
-            text_color=t["text_main"], border_width=1, border_color=t["ai_border"],
-            wrap="word"
-        )
-        self.txt_edit.pack(fill="both", expand=True, padx=16, pady=8)
-        self.txt_edit.insert("1.0", current_text)
-
-        btn_row = ctk.CTkFrame(self, fg_color="transparent")
-        btn_row.pack(fill="x", padx=16, pady=(4, 16))
-
-        btn_cancel = ctk.CTkButton(
-            btn_row, text="Cancel", width=90, height=34, font=(FONT_FAMILY, 10),
-            fg_color="#272A38", hover_color="#36394C", text_color="#EDEDF2",
-            command=self.destroy
-        )
-        btn_cancel.pack(side="left", padx=4)
-
-        if self.is_user:
-            btn_rerun = ctk.CTkButton(
-                btn_row, text="Save & Re-send", width=140, height=34, font=(FONT_FAMILY, 10, "bold"),
-                fg_color="#1E8449", hover_color="#2ECC71", text_color="#FFFFFF",
-                command=self._save_and_rerun
-            )
-            btn_rerun.pack(side="right", padx=4)
-
-        btn_save = ctk.CTkButton(
-            btn_row, text="Save Changes", width=130, height=34, font=(FONT_FAMILY, 10, "bold"),
-            fg_color=t["accent"], hover_color=t["accent_hover"], text_color="#FFFFFF",
-            command=self._save_only
-        )
-        btn_save.pack(side="right", padx=4)
-
-    def _save_only(self):
-        new_text = self.txt_edit.get("1.0", "end").strip()
-        if new_text:
-            self.parent.update_message_content(self.msg_index, new_text)
-        self.destroy()
-
-    def _save_and_rerun(self):
-        new_text = self.txt_edit.get("1.0", "end").strip()
-        if new_text:
-            self.parent.update_and_rerun_message(self.msg_index, new_text)
-        self.destroy()
+app = FastAPI(title="SIREN FLOW — PHC GIZMOOH")
 
 # ==============================================================================
-# 4. EXECUTIVE PREFERENCES MODAL
+# REST & STREAMING API ENDPOINTS
 # ==============================================================================
-class SettingsWindow(ctk.CTkToplevel):
-    def __init__(self, parent):
-        super().__init__()
-        self.parent = parent
-        self.title("SirenFlow AI — Preferences")
-        self.geometry("550x590")
-        self.resizable(False, False)
-        self.attributes("-topmost", True)
-
-        t = parent.theme
-        self.configure(fg_color=t["bg_root"])
-        ctk.set_appearance_mode(t.get("mode", "dark"))
-
-        self.cfg = load_config()
-
-        ctk.CTkLabel(
-            self, text="✦ SYSTEM PREFERENCES",
-            font=(FONT_FAMILY, 14, "bold"), text_color=t["accent"]
-        ).pack(pady=(16, 2))
-
-        ctk.CTkLabel(
-            self, text="Configure Neural Engines (Notrack / OpenRouter), Aesthetic Theme, Font Size & Rules",
-            font=(FONT_FAMILY, 9), text_color=t["text_muted"]
-        ).pack(pady=(0, 10))
-
-        frame = ctk.CTkFrame(
-            self, fg_color=t["bg_card"], corner_radius=10,
-            border_width=1, border_color=t["ai_border"]
-        )
-        frame.pack(fill="both", expand=True, padx=20, pady=4)
-
-        ctk.CTkLabel(frame, text="API Token (sk-notrack-... or sk-or-v1-...):", font=(FONT_FAMILY, 10, "bold"), text_color=t["accent"]).pack(anchor="w", padx=14, pady=(8, 2))
-        self.entry_key = ctk.CTkEntry(frame, show="*", font=(FONT_FAMILY, 10), height=32, fg_color=t["bg_root"], text_color=t["text_main"], placeholder_text="sk-notrack-... or sk-or-v1-...")
-        self.entry_key.insert(0, self.cfg.get("openrouter_api_key", ""))
-        self.entry_key.pack(fill="x", padx=14, pady=(0, 8))
-
-        ctk.CTkLabel(frame, text="Neural Engine (Preloaded Uncensored Models):", font=(FONT_FAMILY, 10, "bold"), text_color=t["accent"]).pack(anchor="w", padx=14, pady=(2, 2))
-        self.combo_model = ctk.CTkComboBox(frame, values=POPULAR_MODELS, height=32, font=(FONT_FAMILY, 10), fg_color=t["bg_root"], text_color=t["text_main"])
-        self.combo_model.set(self.cfg.get("selected_model", POPULAR_MODELS[0]))
-        self.combo_model.pack(fill="x", padx=14, pady=(0, 8))
-
-        row_settings = ctk.CTkFrame(frame, fg_color="transparent")
-        row_settings.pack(fill="x", padx=14, pady=(2, 8))
-        row_settings.grid_columnconfigure((0, 1), weight=1)
-
-        ctk.CTkLabel(row_settings, text="Palette Aesthetic (Light/Dark):", font=(FONT_FAMILY, 10, "bold"), text_color=t["accent"]).grid(row=0, column=0, sticky="w", padx=(0, 6), pady=(0, 2))
-        self.combo_theme = ctk.CTkComboBox(row_settings, values=list(THEMES.keys()), height=32, font=(FONT_FAMILY, 10), fg_color=t["bg_root"], text_color=t["text_main"])
-        self.combo_theme.set(self.cfg.get("selected_theme", "ChatGPT Minimal Dark"))
-        self.combo_theme.grid(row=1, column=0, sticky="ew", padx=(0, 6))
-
-        font_options = ["10 (Compact)", "11", "12 (Standard)", "13 (Balanced)", "14 (Comfortable)", "15", "16 (Large)"]
-        cur_font = str(self.cfg.get("chat_font_size", 13))
-        match_font_val = next((opt for opt in font_options if opt.startswith(cur_font)), "13 (Balanced)")
-
-        ctk.CTkLabel(row_settings, text="Chat Text Size:", font=(FONT_FAMILY, 10, "bold"), text_color=t["accent"]).grid(row=0, column=1, sticky="w", padx=(6, 0), pady=(0, 2))
-        self.combo_font = ctk.CTkComboBox(row_settings, values=font_options, height=32, font=(FONT_FAMILY, 10), fg_color=t["bg_root"], text_color=t["text_main"])
-        self.combo_font.set(match_font_val)
-        self.combo_font.grid(row=1, column=1, sticky="ew", padx=(6, 0))
-
-        ctk.CTkLabel(frame, text="System Persona Prompt:", font=(FONT_FAMILY, 10, "bold"), text_color=t["accent"]).pack(anchor="w", padx=14, pady=(2, 2))
-        self.txt_sys = ctk.CTkTextbox(frame, height=85, font=(FONT_FAMILY, 10), fg_color=t["bg_root"], text_color=t["text_main"], wrap="word")
-        self.txt_sys.insert("1.0", self.cfg.get("system_prompt", ""))
-        self.txt_sys.pack(fill="x", padx=14, pady=(0, 10))
-
-        self.lbl_status = ctk.CTkLabel(self, text="", font=(FONT_FAMILY, 10), text_color=t["accent"])
-        self.lbl_status.pack(pady=2)
-
-        btn_save = ctk.CTkButton(
-            self, text="APPLY PREFERENCES", font=(FONT_FAMILY, 11, "bold"), height=38,
-            fg_color=t["accent"], hover_color=t["accent_hover"],
-            text_color="#FFFFFF", corner_radius=8, command=self._save
-        )
-        btn_save.pack(fill="x", padx=20, pady=(0, 16))
-
-    def _save(self):
-        self.cfg["openrouter_api_key"] = self.entry_key.get().strip()
-        self.cfg["selected_model"] = self.combo_model.get().strip()
-        self.cfg["selected_theme"] = self.combo_theme.get().strip()
-        self.cfg["system_prompt"] = self.txt_sys.get("1.0", "end").strip()
-
-        raw_font = self.combo_font.get().split()[0].strip()
-        try:
-            self.cfg["chat_font_size"] = int(raw_font)
-        except ValueError:
-            self.cfg["chat_font_size"] = 13
-
-        save_config(self.cfg)
-
-        self.parent.cfg = self.cfg
-        self.parent.apply_theme_and_rebuild()
-        self.lbl_status.configure(text="Preferences applied successfully.")
-        self.after(500, self.destroy)
-
-# ==============================================================================
-# 5. MAIN LUXURY STUDIO APPLICATION
-# ==============================================================================
-class SirenFlowAIApp(ctk.CTk):
-    def __init__(self):
-        super().__init__()
-        self.title("SirenFlow AI — Private Luxury Studio")
-        self.geometry("1060x760")
-        self.minsize(860, 600)
-
-        self.cfg = load_config()
-        self.theme_name = self.cfg.get("selected_theme", "ChatGPT Minimal Dark")
-        self.theme = THEMES.get(self.theme_name, THEMES["ChatGPT Minimal Dark"])
-        self.chat_font_size = int(self.cfg.get("chat_font_size", 13))
-
-        ctk.set_appearance_mode(self.theme.get("mode", "dark"))
-
-        self.chats = load_chats()
-        self.current_chat_id = None
-        self.current_messages = []
-        self.active_images = []
-
-        self.is_generating = False
-        self.stop_requested = False
-        self.active_request_stream = None
-
-        self.grid_columnconfigure(0, weight=0, minsize=250)
-        self.grid_columnconfigure(1, weight=1)
-        self.grid_rowconfigure(0, weight=1)
-
-        self._build_ui()
-        self.start_new_chat(render_welcome=True)
-
-    def apply_theme_and_rebuild(self):
-        self.theme_name = self.cfg.get("selected_theme", "ChatGPT Minimal Dark")
-        self.theme = THEMES.get(self.theme_name, THEMES["ChatGPT Minimal Dark"])
-        self.chat_font_size = int(self.cfg.get("chat_font_size", 13))
-
-        ctk.set_appearance_mode(self.theme.get("mode", "dark"))
-
-        for widget in self.winfo_children():
-            widget.destroy()
-
-        self._build_ui()
-        if self.current_chat_id:
-            self.load_chat_by_id(self.current_chat_id)
-        else:
-            self.start_new_chat(render_welcome=True)
-
-    def _build_ui(self):
-        t = self.theme
-        self.configure(fg_color=t["bg_root"])
-
-        # ----------------- SIDEBAR -----------------
-        self.sidebar_frame = ctk.CTkFrame(self, fg_color=t["bg_sidebar"], width=250, corner_radius=0, border_width=1, border_color=t["ai_border"])
-        self.sidebar_frame.grid(row=0, column=0, sticky="nsew")
-        self.sidebar_frame.grid_propagate(False)
-
-        brand_frame = ctk.CTkFrame(self.sidebar_frame, fg_color="transparent")
-        brand_frame.pack(fill="x", padx=16, pady=(16, 8))
-
-        ctk.CTkLabel(brand_frame, text="✦ SIRENFLOW", font=(FONT_FAMILY, 13, "bold"), text_color=t["accent"]).pack(anchor="w")
-        ctk.CTkLabel(brand_frame, text="PRIVATE DESKTOP INTELLIGENCE", font=(FONT_FAMILY, 8, "bold"), text_color=t["text_muted"]).pack(anchor="w", pady=(1, 0))
-
-        btn_new_chat = ctk.CTkButton(
-            self.sidebar_frame,
-            text="+ New Conversation",
-            font=(FONT_FAMILY, 10, "bold"),
-            height=34,
-            fg_color=t["bg_card"],
-            hover_color=t["ai_border"],
-            border_width=1,
-            border_color=t["accent"],
-            text_color=t["accent"],
-            corner_radius=8,
-            command=self.start_new_chat
-        )
-        btn_new_chat.pack(fill="x", padx=12, pady=(6, 12))
-
-        ctk.CTkLabel(self.sidebar_frame, text="CONVERSATION VAULT", font=(FONT_FAMILY, 8, "bold"), text_color=t["text_muted"]).pack(anchor="w", padx=16, pady=(2, 4))
-
-        self.chats_scroll = ctk.CTkScrollableFrame(self.sidebar_frame, fg_color="transparent")
-        self.chats_scroll.pack(fill="both", expand=True, padx=4, pady=(0, 10))
-
-        # ----------------- MAIN CHAT AREA -----------------
-        self.main_frame = ctk.CTkFrame(self, fg_color=t["bg_root"], corner_radius=0)
-        self.main_frame.grid(row=0, column=1, sticky="nsew")
-
-        # Top Bar
-        top_bar = ctk.CTkFrame(self.main_frame, fg_color=t["bg_sidebar"], height=46, corner_radius=0, border_width=1, border_color=t["ai_border"])
-        top_bar.pack(fill="x", side="top")
-
-        model_short = self.cfg.get("selected_model", "notrack-uncensored").split("/")[-1]
-        self.lbl_model_badge = ctk.CTkLabel(
-            top_bar,
-            text=f"✧ {model_short}  •  {self.theme_name}  •  {self.chat_font_size}pt",
-            font=(FONT_FAMILY, 10, "bold"),
-            text_color=t["accent"]
-        )
-        self.lbl_model_badge.pack(side="left", padx=16)
-
-        btn_settings = ctk.CTkButton(
-            top_bar, text="Preferences", width=100, height=28, font=(FONT_FAMILY, 10),
-            fg_color=t["bg_card"], hover_color=t["ai_border"], text_color=t["text_main"],
-            border_width=1, border_color=t["ai_border"], corner_radius=6,
-            command=lambda: SettingsWindow(self)
-        )
-        btn_settings.pack(side="right", padx=14, pady=8)
-
-        # Messages Scroll Frame
-        self.scroll_messages = ctk.CTkScrollableFrame(self.main_frame, fg_color=t["bg_root"], corner_radius=0)
-        self.scroll_messages.pack(fill="both", expand=True, padx=12, pady=6)
-
-        # ----------------- BOTTOM CONTROLS & INPUT -----------------
-        bottom_box = ctk.CTkFrame(self.main_frame, fg_color=t["bg_sidebar"], corner_radius=0, border_width=1, border_color=t["ai_border"])
-        bottom_box.pack(fill="x", side="bottom")
-
-        action_bar = ctk.CTkFrame(bottom_box, fg_color="transparent")
-        action_bar.pack(fill="x", padx=14, pady=(6, 2))
-
-        ctk.CTkLabel(action_bar, text="Canvas Size:", font=(FONT_FAMILY, 9, "bold"), text_color=t["text_muted"]).pack(side="left", padx=(4, 6))
-
-        self.combo_ratio = ctk.CTkComboBox(
-            action_bar, values=list(ASPECT_RATIOS.keys()), width=165, height=26,
-            font=(FONT_FAMILY, 9), fg_color=t["bg_card"], text_color=t["text_main"],
-            border_width=1, border_color=t["ai_border"]
-        )
-        self.combo_ratio.set("1:1 (Square)")
-        self.combo_ratio.pack(side="left", padx=(0, 10))
-
-        self.lbl_studio_status = ctk.CTkLabel(action_bar, text="Ready (Text or Image)", font=(FONT_FAMILY, 9), text_color=t["text_muted"])
-        self.lbl_studio_status.pack(side="left")
-
-        input_container = ctk.CTkFrame(bottom_box, fg_color=t["bg_card"], corner_radius=10, border_width=1, border_color=t["ai_border"])
-        input_container.pack(fill="x", padx=14, pady=(2, 12))
-
-        self.entry_user = ctk.CTkEntry(
-            input_container, placeholder_text="Ask anything, request uncensored scripts, or describe a photo to create...",
-            font=(FONT_FAMILY, 11), height=44, fg_color="transparent",
-            text_color=t["text_main"], border_width=0
-        )
-        self.entry_user.pack(side="left", fill="x", expand=True, padx=(12, 8), pady=4)
-        self.entry_user.bind("<Return>", lambda e: self.send_message())
-
-        self.btn_gen_img = ctk.CTkButton(
-            input_container, text="Create Pic", width=95, height=36, font=(FONT_FAMILY, 10, "bold"),
-            fg_color=t["bg_card"], hover_color=t["ai_border"], text_color=t["accent"],
-            border_width=1, border_color=t["ai_border"],
-            corner_radius=8, command=self.generate_image_action
-        )
-        self.btn_gen_img.pack(side="right", padx=(2, 4), pady=4)
-
-        self.btn_send = ctk.CTkButton(
-            input_container, text="➤", width=46, height=36, font=(FONT_FAMILY, 13, "bold"),
-            fg_color=t["accent"], hover_color=t["accent_hover"],
-            text_color="#FFFFFF", corner_radius=8, command=self.send_message
-        )
-        self.btn_send.pack(side="right", padx=(2, 4), pady=4)
-
-        self._refresh_sidebar_list()
-
-    # -------------------------------------------------------------
-    # RIGHT-CLICK CONTEXT MENU
-    # -------------------------------------------------------------
-    def _attach_context_menu(self, widget, txt_widget, full_content, msg_idx, is_user):
-        def _popup(e):
-            selected = ""
-            try:
-                selected = txt_widget.get("sel.first", "sel.last")
-            except tk.TclError:
-                pass
-
-            t = self.theme
-            menu = tk.Menu(
-                self, tearoff=0, bg=t["bg_card"], fg=t["text_main"],
-                activebackground=t["accent"], activeforeground="#FFFFFF",
-                relief="flat", bd=1, font=(FONT_FAMILY, 10)
-            )
-            if selected:
-                menu.add_command(label="Copy Selected Text", command=lambda: self._copy_to_clipboard(selected))
-            menu.add_command(label="Copy Full Message", command=lambda: self._copy_to_clipboard(full_content))
-            menu.add_command(label="Edit Message", command=lambda: self.open_edit_dialog(msg_idx, full_content, is_user))
-
-            try:
-                menu.tk_popup(e.x_root, e.y_root)
-            finally:
-                menu.grab_release()
-
-        widget.bind("<Button-3>", _popup)
-        widget.bind("<Button-2>", _popup)
-        widget.bind("<Control-Button-1>", _popup)
-
-    def open_edit_dialog(self, msg_idx, current_text, is_user):
-        EditMessageModal(self, msg_idx, current_text, is_user)
-
-    def update_message_content(self, msg_idx, new_text):
-        if 0 <= msg_idx < len(self.current_messages):
-            self.current_messages[msg_idx]["content"] = new_text
-            self._sync_and_save_current_chat()
-            self._rerender_all_bubbles()
-
-    def update_and_rerun_message(self, msg_idx, new_text):
-        if 0 <= msg_idx < len(self.current_messages):
-            self.current_messages = self.current_messages[:msg_idx]
-            self._rerender_all_bubbles()
-            self.entry_user.delete(0, "end")
-            self.entry_user.insert(0, new_text)
-            self.send_message()
-
-    # -------------------------------------------------------------
-    # CHAT BUBBLES: PERFECT AUTO-HEIGHT + NO-SCROLL TRAP
-    # -------------------------------------------------------------
-    def _rerender_all_bubbles(self):
-        for widget in self.scroll_messages.winfo_children():
-            widget.destroy()
-        for idx, msg in enumerate(self.current_messages):
-            if "🎨 [Rendered Image" in msg["content"]:
-                continue
-            self._create_bubble(msg["role"], msg["content"], msg_idx=idx)
-
-    def _calc_text_height(self, content, chars_width):
-        lines = content.split("\n")
-        total = 0
-        effective_w = max(18, chars_width)
-        for l in lines:
-            line_len = len(l)
-            wrap_rows = max(1, (line_len + effective_w - 1) // effective_w)
-            total += wrap_rows
-        return max(1, total)
-
-    def _fit_text_widget(self, txt_widget, fallback_h=1):
-        try:
-            txt_widget.update_idletasks()
-            d_lines = txt_widget.count("1.0", "end-1c", "displaylines")
-            if d_lines and d_lines[0] is not None:
-                true_height = d_lines[0] + 1
-            else:
-                true_height = fallback_h
-            txt_widget.configure(height=max(1, true_height))
-        except Exception:
-            txt_widget.configure(height=max(1, fallback_h))
-
-    def _create_bubble(self, role, content, msg_idx=None):
-        t = self.theme
-        is_user = (role == "user")
-        if msg_idx is None:
-            msg_idx = len(self.current_messages) - 1
-
-        row = ctk.CTkFrame(self.scroll_messages, fg_color="transparent")
-        row.pack(fill="x", padx=8, pady=4)
-
-        bubble_color = t["user_bubble"] if is_user else t["ai_bubble"]
-        border_color = t["user_border"] if is_user else t["ai_border"]
-
-        longest_line = max((len(l) for l in content.split("\n")), default=1)
-        calc_width = max(18, min(56, longest_line + 4))
-
-        bubble = ctk.CTkFrame(
-            row, fg_color=bubble_color, corner_radius=12,
-            border_width=1, border_color=border_color
-        )
-        if is_user:
-            bubble.pack(anchor="e", padx=(80, 8))
-        else:
-            bubble.pack(anchor="w", padx=(8, 80))
-
-        # --- Top Header ---
-        head = ctk.CTkFrame(bubble, fg_color="transparent")
-        head.pack(fill="x", padx=10, pady=(6, 2))
-
-        title_text = "YOU" if is_user else "✧ SIRENFLOW"
-        ctk.CTkLabel(head, text=title_text, font=(FONT_FAMILY, 9, "bold"), text_color=t["accent"]).pack(side="left")
-
-        btn_top_copy = ctk.CTkButton(
-            head, text="Copy", width=44, height=18, font=(FONT_FAMILY, 8, "bold"),
-            fg_color=t["bg_card"], hover_color=t["ai_border"], text_color=t["text_muted"],
-            corner_radius=4, command=lambda: self._copy_to_clipboard(content)
-        )
-        btn_top_copy.pack(side="right", padx=(2, 0))
-
-        btn_edit = ctk.CTkButton(
-            head, text="Edit", width=40, height=18, font=(FONT_FAMILY, 8),
-            fg_color=t["bg_card"], hover_color=t["ai_border"], text_color=t["accent"] if is_user else t["text_muted"],
-            corner_radius=4, command=lambda: self.open_edit_dialog(msg_idx, content, is_user)
-        )
-        btn_edit.pack(side="right", padx=(2, 2))
-
-        # --- Textbox ---
-        init_h = self._calc_text_height(content, calc_width)
-        txt_box = tk.Text(
-            bubble,
-            bg=bubble_color,
-            fg=t["text_main"],
-            font=(FONT_FAMILY, self.chat_font_size),
-            wrap="word",
-            relief="flat",
-            bd=0,
-            highlightthickness=0,
-            selectbackground=t["accent"],
-            selectforeground="#FFFFFF",
-            insertwidth=0,
-            cursor="xterm",
-            height=init_h,
-            width=calc_width
-        )
-        txt_box.pack(fill="both", expand=True, padx=12, pady=(2, 2))
-        txt_box.insert("1.0", content)
-
-        def _prevent_typing(e):
-            if (e.state & 4 or e.state & 8) and e.keysym.lower() in ('c', 'a'):
-                return None
-            return "break"
-
-        txt_box.bind("<Key>", _prevent_typing)
-
-        def _pass_mousewheel(e):
-            if e.num == 5 or (hasattr(e, 'delta') and e.delta < 0):
-                self.scroll_messages._parent_canvas.yview_scroll(2, "units")
-            elif e.num == 4 or (hasattr(e, 'delta') and e.delta > 0):
-                self.scroll_messages._parent_canvas.yview_scroll(-2, "units")
-            return "break"
-
-        txt_box.bind("<MouseWheel>", _pass_mousewheel)
-        txt_box.bind("<Button-4>", _pass_mousewheel)
-        txt_box.bind("<Button-5>", _pass_mousewheel)
-
-        self.after(50, lambda b=txt_box, h=init_h: self._fit_text_widget(b, fallback_h=h))
-
-        # --- Bottom Footer ---
-        foot = ctk.CTkFrame(bubble, fg_color="transparent")
-        foot.pack(fill="x", padx=10, pady=(0, 6))
-
-        btn_bot_copy = ctk.CTkButton(
-            foot, text="Copy Text", width=70, height=18, font=(FONT_FAMILY, 8),
-            fg_color="transparent", hover_color=t["bg_card"], text_color=t["text_muted"],
-            command=lambda: self._copy_to_clipboard(content)
-        )
-        btn_bot_copy.pack(side="right" if is_user else "left")
-
-        # Context Menus
-        self._attach_context_menu(bubble, txt_box, content, msg_idx, is_user)
-        self._attach_context_menu(txt_box, txt_box, content, msg_idx, is_user)
-
-        self._scroll_to_bottom()
-        return txt_box
-
-    def _create_image_bubble(self, prompt, pil_image, ratio_label):
-        t = self.theme
-        row = ctk.CTkFrame(self.scroll_messages, fg_color="transparent")
-        row.pack(fill="x", padx=8, pady=8)
-
-        card = ctk.CTkFrame(row, fg_color=t["ai_bubble"], corner_radius=12, border_width=1, border_color=t["ai_border"])
-        card.pack(anchor="w", padx=(8, 60))
-
-        head = ctk.CTkFrame(card, fg_color="transparent")
-        head.pack(fill="x", padx=12, pady=(8, 4))
-
-        ctk.CTkLabel(head, text=f"✧ SIRENFLOW STUDIO  •  {ratio_label}", font=(FONT_FAMILY, 9, "bold"), text_color=t["accent"]).pack(side="left")
-
-        btn_save = ctk.CTkButton(
-            head, text="Save PNG", width=75, height=20, font=(FONT_FAMILY, 8, "bold"),
-            fg_color=t["accent"], hover_color=t["accent_hover"], text_color="#FFFFFF",
-            corner_radius=4, command=lambda img=pil_image: self._save_image_to_disk(img)
-        )
-        btn_save.pack(side="right")
-
-        _, _, disp_w, disp_h = ASPECT_RATIOS[ratio_label]
-        ctk_img = ctk.CTkImage(light_image=pil_image, dark_image=pil_image, size=(disp_w, disp_h))
-        self.active_images.append(ctk_img)
-
-        img_label = ctk.CTkLabel(card, image=ctk_img, text="")
-        img_label.pack(padx=12, pady=6)
-
-        caption = ctk.CTkLabel(card, text=f"Prompt: {prompt}", font=(FONT_FAMILY, 9), text_color=t["text_muted"], justify="left", wraplength=disp_w)
-        caption.pack(anchor="w", padx=12, pady=(2, 8))
-
-        self._scroll_to_bottom()
-
-    def _save_image_to_disk(self, pil_image):
-        file_path = filedialog.asksaveasfilename(
-            defaultextension=".png",
-            filetypes=[("PNG Image", "*.png"), ("JPEG Image", "*.jpg")],
-            title="Save Generated Image"
-        )
-        if file_path:
-            try:
-                pil_image.save(file_path)
-                self.bell()
-            except Exception:
-                pass
-
-    def _copy_to_clipboard(self, text):
-        self.clipboard_clear()
-        self.clipboard_append(text)
-        self.bell()
-
-    def _scroll_to_bottom(self):
-        self.update_idletasks()
-        try:
-            self.scroll_messages._parent_canvas.yview_moveto(1.0)
-        except Exception:
-            pass
-
-    # -------------------------------------------------------------
-    # STOP GENERATION CONTROLLER
-    # -------------------------------------------------------------
-    def _set_generation_state(self, is_active):
-        self.is_generating = is_active
-        t = self.theme
-        if is_active:
-            self.stop_requested = False
-            self.btn_send.configure(
-                text="⏹ Stop", width=62, fg_color="#C0392B",
-                hover_color="#E74C3C", text_color="#FFFFFF",
-                command=self.stop_current_action
-            )
-            self.btn_gen_img.configure(state="disabled")
-            self.lbl_studio_status.configure(text="Generating response... [Click Stop to abort]", text_color=t["accent"])
-        else:
-            self.stop_requested = False
-            self.active_request_stream = None
-            self.btn_send.configure(
-                text="➤", width=46, fg_color=t["accent"],
-                hover_color=t["accent_hover"], text_color="#FFFFFF",
-                command=self.send_message
-            )
-            self.btn_gen_img.configure(state="normal")
-            self.lbl_studio_status.configure(text="Ready (Text or Image)", text_color=t["text_muted"])
-
-    def stop_current_action(self):
-        self.stop_requested = True
-        if self.active_request_stream:
-            try:
-                self.active_request_stream.close()
-            except Exception:
-                pass
-        self.lbl_studio_status.configure(text="Aborting generation... Tokens saved.", text_color="#E67E22")
-
-    # -------------------------------------------------------------
-    # FLUX.1 IMAGE STUDIO
-    # -------------------------------------------------------------
-    def generate_image_action(self):
-        prompt = self.entry_user.get().strip()
-        if not prompt:
-            return
-
-        self.entry_user.delete(0, "end")
-        selected_ratio = self.combo_ratio.get()
-
-        if self.current_chat_id is None:
-            self.current_chat_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            title_snippet = f"🎨 {prompt[:18]}..." if len(prompt) > 18 else f"🎨 {prompt}"
-            new_session = {
-                "id": self.current_chat_id,
-                "title": title_snippet,
-                "created_at": datetime.datetime.now().isoformat(),
-                "messages": []
-            }
-            self.chats.append(new_session)
-
-        user_entry = f"🎨 [Create Image • {selected_ratio}]:\n{prompt}"
-        self.current_messages.append({"role": "user", "content": user_entry})
-        self._sync_and_save_current_chat()
-        self._refresh_sidebar_list()
-
-        self._create_bubble("user", user_entry)
-        self._set_generation_state(True)
-        self.lbl_studio_status.configure(text="Rendering FLUX.1 picture... Please wait")
-
-        threading.Thread(target=self._thread_generate_image, args=(prompt, selected_ratio), daemon=True).start()
-
-    def _thread_generate_image(self, prompt, ratio_label):
-        width, height, _, _ = ASPECT_RATIOS.get(ratio_label, (1024, 1024, 380, 380))
-        encoded_prompt = urllib.parse.quote(prompt)
-        seed = random.randint(1000, 99999999)
-
-        image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&model=flux&seed={seed}&nologo=true"
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        }
-
-        try:
-            res = requests.get(image_url, headers=headers, timeout=85)
-            if self.stop_requested:
-                self.after(0, lambda: self._create_bubble("assistant", "Image generation aborted by user."))
-                return
-
-            if res.status_code == 200:
-                pil_image = Image.open(io.BytesIO(res.content)).convert("RGB")
-                self.current_messages.append({"role": "assistant", "content": f"🎨 [Rendered Image • {ratio_label}]: {prompt}"})
-                self._sync_and_save_current_chat()
-
-                self.after(0, lambda: self._create_image_bubble(prompt, pil_image, ratio_label))
-                self.after(0, self.bell)
-            else:
-                err_text = f"Image engine returned HTTP {res.status_code}"
-                self.after(0, lambda: self._create_bubble("assistant", err_text))
-        except Exception as e:
-            if not self.stop_requested:
-                err_text = f"Generation error: {e}"
-                self.after(0, lambda: self._create_bubble("assistant", err_text))
-        finally:
-            self.after(0, lambda: self._set_generation_state(False))
-
-    # -------------------------------------------------------------
-    # SESSIONS VAULT
-    # -------------------------------------------------------------
-    def _sync_and_save_current_chat(self):
-        if not self.current_chat_id:
-            return
-        found = False
-        for c in self.chats:
-            if c["id"] == self.current_chat_id:
-                c["messages"] = list(self.current_messages)
-                found = True
-                break
-        if not found and self.current_messages:
-            first_msg = self.current_messages[0]["content"]
-            title = first_msg[:20] + "..." if len(first_msg) > 20 else first_msg
-            self.chats.append({
-                "id": self.current_chat_id,
-                "title": title,
-                "created_at": datetime.datetime.now().isoformat(),
-                "messages": list(self.current_messages)
-            })
-        save_chats(self.chats)
-
-    def _refresh_sidebar_list(self):
-        t = self.theme
-        for widget in self.chats_scroll.winfo_children():
-            widget.destroy()
-
-        if not self.chats:
-            lbl_empty = ctk.CTkLabel(self.chats_scroll, text="No saved sessions", font=(FONT_FAMILY, 9), text_color=t["text_muted"])
-            lbl_empty.pack(pady=20)
-            return
-
-        for chat in reversed(self.chats):
-            chat_id = chat["id"]
-            title = chat.get("title", "Untitled Session")
-            is_active = (chat_id == self.current_chat_id)
-
-            row = ctk.CTkFrame(
-                self.chats_scroll,
-                fg_color=t["user_bubble"] if is_active else "transparent",
-                border_width=1 if is_active else 0,
-                border_color=t["accent"] if is_active else t["bg_sidebar"],
-                corner_radius=6, height=32
-            )
-            row.pack(fill="x", pady=2)
-            row.pack_propagate(False)
-
-            btn_chat = ctk.CTkButton(
-                row, text=title, anchor="w", font=(FONT_FAMILY, 9, "bold" if is_active else "normal"),
-                text_color=t["accent"] if is_active else t["text_main"],
-                fg_color="transparent", hover_color=t["bg_card"],
-                command=lambda cid=chat_id: self.load_chat_by_id(cid)
-            )
-            btn_chat.pack(side="left", fill="both", expand=True, padx=(4, 0))
-
-            btn_edit = ctk.CTkButton(
-                row, text="✏️", width=22, height=22, font=(FONT_FAMILY, 8),
-                fg_color="transparent", hover_color=t["ai_border"], text_color=t["text_muted"],
-                corner_radius=4, command=lambda cid=chat_id: self.rename_chat_by_id(cid)
-            )
-            btn_edit.pack(side="right", padx=(0, 2))
-
-            btn_del = ctk.CTkButton(
-                row, text="✕", width=22, height=22, font=(FONT_FAMILY, 8, "bold"),
-                fg_color="transparent", hover_color="#4C181E", text_color="#6A6F82",
-                corner_radius=4, command=lambda cid=chat_id: self.delete_chat_by_id(cid)
-            )
-            btn_del.pack(side="right", padx=(0, 4))
-
-    def rename_chat_by_id(self, chat_id):
-        target = next((c for c in self.chats if c["id"] == chat_id), None)
-        if not target:
-            return
-
-        dialog = ctk.CTkInputDialog(text="Enter new session title:", title="Rename Conversation")
-        new_title = dialog.get_input()
-        if new_title and new_title.strip():
-            target["title"] = new_title.strip()
-            save_chats(self.chats)
-            self._refresh_sidebar_list()
-
-    def delete_chat_by_id(self, chat_id):
-        self.chats = [c for c in self.chats if c["id"] != chat_id]
-        save_chats(self.chats)
-        if self.current_chat_id == chat_id:
-            self.start_new_chat(render_welcome=False)
-        else:
-            self._refresh_sidebar_list()
-
-    def start_new_chat(self, render_welcome=False):
-        if self.current_chat_id and self.current_messages:
-            self._sync_and_save_current_chat()
-
-        self.current_chat_id = None
-        self.current_messages = []
-        self._refresh_sidebar_list()
-
-        for widget in self.scroll_messages.winfo_children():
-            widget.destroy()
-
-        t = self.theme
-        welcome_frame = ctk.CTkFrame(self.scroll_messages, fg_color="transparent")
-        welcome_frame.pack(fill="both", expand=True, pady=60)
-
-        ctk.CTkLabel(
-            welcome_frame, text="✦ SIRENFLOW PRIVATE STUDIO",
-            font=(FONT_FAMILY, 15, "bold"), text_color=t["accent"]
-        ).pack(pady=(0, 4))
-
-        ctk.CTkLabel(
-            welcome_frame, text=f"Uncensored Intelligence • Notrack / OpenRouter Engine • Text Size: {self.chat_font_size}pt",
-            font=(FONT_FAMILY, 10), text_color=t["text_muted"]
-        ).pack()
-
-    def load_chat_by_id(self, chat_id):
-        if self.current_chat_id and self.current_messages:
-            self._sync_and_save_current_chat()
-
-        target = next((c for c in self.chats if c["id"] == chat_id), None)
-        if not target:
-            return
-
-        self.current_chat_id = chat_id
-        self.current_messages = list(target.get("messages", []))
-        self._refresh_sidebar_list()
-
-        for widget in self.scroll_messages.winfo_children():
-            widget.destroy()
-
-        for idx, msg in enumerate(self.current_messages):
-            self._create_bubble(msg["role"], msg["content"], msg_idx=idx)
-
-    # -------------------------------------------------------------
-    # TEXT CHAT & STREAMING ENGINE (NOTRACK + OPENROUTER)
-    # -------------------------------------------------------------
-    def send_message(self):
-        query = self.entry_user.get().strip()
-        if not query:
-            return
-
-        self.entry_user.delete(0, "end")
-
-        if self.current_chat_id is None:
-            for widget in self.scroll_messages.winfo_children():
-                widget.destroy()
-
-            self.current_chat_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            title_snippet = query[:20] + "..." if len(query) > 20 else query
-            new_session = {
-                "id": self.current_chat_id,
-                "title": title_snippet,
-                "created_at": datetime.datetime.now().isoformat(),
-                "messages": []
-            }
-            self.chats.append(new_session)
-
-        self.current_messages.append({"role": "user", "content": query})
-        self._sync_and_save_current_chat()
-        self._refresh_sidebar_list()
-
-        self._create_bubble("user", query)
-        self._set_generation_state(True)
-
-        threading.Thread(target=self._query_ai_streaming, args=(query,), daemon=True).start()
-
-    def _query_ai_streaming(self, user_msg):
-        api_key = self.cfg.get("openrouter_api_key", "").strip()
-        selected_model = self.cfg.get("selected_model", "notrack-uncensored")
-
-        if not api_key:
-            warn_msg = "Warning: API Token is empty. Open Preferences to authenticate your Notrack or OpenRouter key."
-            self.current_messages.append({"role": "assistant", "content": warn_msg})
-            self._sync_and_save_current_chat()
-            self.after(0, lambda: self._create_bubble("assistant", warn_msg))
-            self.after(0, lambda: self._set_generation_state(False))
-            return
-
-        base_url = resolve_api_endpoint(api_key, selected_model)
-        target_url = f"{base_url}/chat/completions"
-
-        messages = [{"role": "system", "content": self.cfg.get("system_prompt", "")}]
-        messages.extend(self.current_messages[-10:])
-
-        payload = {
-            "model": selected_model,
-            "messages": messages,
-            "temperature": self.cfg.get("temperature", 0.75),
-            "max_tokens": 3000,
-            "stream": True
-        }
-
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-        if "openrouter" in base_url:
-            headers["HTTP-Referer"] = "https://sirenflow.app"
-            headers["X-Title"] = "SirenFlow Desktop"
-
-        placeholder_idx = len(self.current_messages)
-        ai_box_holder = []
-
-        def _init_ai_bubble():
-            txt_w = self._create_bubble("assistant", "Thinking...", msg_idx=placeholder_idx)
-            ai_box_holder.append(txt_w)
-
-        self.after(0, _init_ai_bubble)
-
-        full_answer = ""
-        chunk_counter = 0
-
+@app.get("/api/config")
+def get_config_api():
+    return load_config()
+
+@app.post("/api/config")
+async def set_config_api(req: Request):
+    data = await req.json()
+    cfg = load_config()
+    cfg.update(data)
+    save_config(cfg)
+    return {"status": "ok", "config": cfg}
+
+@app.get("/api/chats")
+def get_chats_api():
+    return load_chats()
+
+@app.post("/api/chats")
+async def save_chats_api(req: Request):
+    data = await req.json()
+    save_chats(data)
+    return {"status": "ok"}
+
+@app.post("/api/chat/stream")
+async def chat_stream(req: Request):
+    data = await req.json()
+    messages = data.get("messages", [])
+    cfg = load_config()
+
+    api_key = cfg.get("openrouter_api_key", "").strip()
+    model = cfg.get("selected_model", "notrack-uncensored")
+
+    if not api_key:
+        async def err_gen():
+            yield "data: ⚠️ Error: Walang API key na nakalagay. Buksan ang Settings sa itaas.\n\n"
+            yield "data: [DONE]\n\n"
+        return StreamingResponse(err_gen(), media_type="text/event-stream")
+
+    base_url = resolve_api_endpoint(api_key, model)
+    target_url = f"{base_url}/chat/completions"
+    full_messages = [{"role": "system", "content": cfg.get("system_prompt", "")}] + messages[-12:]
+
+    payload = {
+        "model": model,
+        "messages": full_messages,
+        "temperature": cfg.get("temperature", 0.75),
+        "max_tokens": 3000,
+        "stream": True
+    }
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    if "openrouter" in base_url:
+        headers["HTTP-Referer"] = "https://sirenflow.app"
+        headers["X-Title"] = "SIREN FLOW PHC GIZMOOH"
+
+    def event_stream():
         try:
             res = requests.post(target_url, headers=headers, json=payload, stream=True, timeout=60)
-            self.active_request_stream = res
+            if res.status_code != 200:
+                yield f"data: ⚠️ Engine Error ({res.status_code}): {res.text[:120]}\n\n"
+                yield "data: [DONE]\n\n"
+                return
 
-            if res.status_code == 200:
-                for line in res.iter_lines():
-                    if self.stop_requested:
-                        full_answer += "\n\n[Generation stopped by user - tokens saved]"
-                        break
-
-                    if line:
-                        decoded = line.decode("utf-8")
-                        if decoded.startswith("data: "):
-                            raw_data = decoded[6:].strip()
-                            if raw_data == "[DONE]":
-                                break
-                            try:
-                                json_chunk = json.loads(raw_data)
-                                delta_text = json_chunk["choices"][0]["delta"].get("content", "")
-                                if delta_text:
-                                    full_answer += delta_text
-                                    chunk_counter += 1
-                                    if chunk_counter % 2 == 0 and ai_box_holder:
-                                        target_box = ai_box_holder[0]
-                                        def _stream_update(txt=full_answer, b=target_box):
-                                            b.delete("1.0", "end")
-                                            b.insert("1.0", txt)
-                                            self._fit_text_widget(b)
-                                        self.after(0, _stream_update)
-                                        self.after(0, self._scroll_to_bottom)
-                            except Exception:
-                                pass
-
-                if ai_box_holder:
-                    final_txt = full_answer if full_answer.strip() else "[No response generated]"
-                    def _finalize(txt=final_txt, b=ai_box_holder[0]):
-                        b.delete("1.0", "end")
-                        b.insert("1.0", txt)
-                        self._fit_text_widget(b)
-                    self.after(0, _finalize)
-                    self.after(0, self._scroll_to_bottom)
-
-                self.current_messages.append({"role": "assistant", "content": full_answer})
-                self._sync_and_save_current_chat()
-                self.after(0, self.bell)
-
-            else:
-                err_text = f"Engine Error {res.status_code}: {res.text[:120]}"
-                if ai_box_holder:
-                    def _err_update(txt=err_text, b=ai_box_holder[0]):
-                        b.delete("1.0", "end")
-                        b.insert("1.0", txt)
-                        self._fit_text_widget(b)
-                    self.after(0, _err_update)
-                self.current_messages.append({"role": "assistant", "content": err_text})
-                self._sync_and_save_current_chat()
-
+            for line in res.iter_lines():
+                if line:
+                    decoded = line.decode("utf-8")
+                    if decoded.startswith("data: "):
+                        raw_data = decoded[6:].strip()
+                        if raw_data == "[DONE]":
+                            yield "data: [DONE]\n\n"
+                            break
+                        try:
+                            json_chunk = json.loads(raw_data)
+                            delta = json_chunk["choices"][0]["delta"].get("content", "")
+                            if delta:
+                                yield f"data: {json.dumps({'content': delta})}\n\n"
+                        except Exception:
+                            pass
         except Exception as e:
-            if not self.stop_requested:
-                err_text = f"Connection Interrupted: {e}"
-                if ai_box_holder:
-                    def _conn_err(txt=err_text, b=ai_box_holder[0]):
-                        b.delete("1.0", "end")
-                        b.insert("1.0", txt)
-                        self._fit_text_widget(b)
-                    self.after(0, _conn_err)
-                self.current_messages.append({"role": "assistant", "content": err_text})
-                self._sync_and_save_current_chat()
-        finally:
-            self.after(0, lambda: self._set_generation_state(False))
+            yield f"data: ⚠️ Connection Error: {str(e)}\n\n"
+            yield "data: [DONE]\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+@app.post("/api/image")
+async def generate_image_api(req: Request):
+    data = await req.json()
+    prompt = data.get("prompt", "")
+    ratio = data.get("ratio", "1:1")
+
+    dimensions = {
+        "1:1": (1024, 1024),
+        "9:16": (768, 1344),
+        "16:9": (1344, 768),
+        "4:5": (864, 1080)
+    }
+    w, h = dimensions.get(ratio, (1024, 1024))
+    encoded = urllib.parse.quote(prompt)
+    seed = random.randint(1000, 99999999)
+    image_url = f"https://image.pollinations.ai/prompt/{encoded}?width={w}&height={h}&model=flux&seed={seed}&nologo=true"
+    return {"status": "ok", "image_url": image_url}
+
+# ==============================================================================
+# PWA CLIENT INTERFACE (CLICK-ONLY DRAWER, CHATGPT THEMES)
+# ==============================================================================
+@app.get("/", response_class=HTMLResponse)
+def index():
+    return """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SirenFlow">
+    <meta name="theme-color" content="#0E0E12">
+    <title>SIREN FLOW — PHC GIZMOOH</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { -webkit-tap-highlight-color: transparent; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-[#0E0E12] text-[#EDEDF2] h-screen w-screen overflow-hidden flex flex-col font-sans transition-colors duration-200" id="appBody">
+
+    <!-- HEADER -->
+    <header class="h-14 border-b border-[#2A2A38] flex items-center justify-between px-4 bg-[#17171E] shrink-0 select-none" id="headerBar">
+        <div class="flex items-center gap-2">
+            <button onclick="toggleSidebar()" class="p-2 rounded-lg bg-[#22222D] hover:bg-[#2A2A3A] active:scale-95 text-[#10A37F]">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+            </button>
+            <div>
+                <h1 class="text-sm font-bold tracking-wide text-[#10A37F] flex items-center gap-1">✦ SIREN FLOW</h1>
+                <p class="text-[10px] text-[#828699] font-semibold tracking-wider">PHC GIZMOOH</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <button onclick="toggleTheme()" class="p-2 rounded-lg bg-[#22222D] hover:bg-[#2A2A3A] text-xs font-bold" id="themeBtn">☀️</button>
+            <button onclick="openSettings()" class="p-2 rounded-lg bg-[#22222D] hover:bg-[#2A2A3A] text-xs font-bold text-[#EDEDF2]">⚙️</button>
+        </div>
+    </header>
+
+    <!-- WORKSPACE -->
+    <div class="flex-1 flex overflow-hidden relative">
+        <!-- SIDEBAR DRAWER (CLICK-TOGGLED ONLY) -->
+        <aside id="sidebar" class="absolute md:relative z-30 w-72 h-full bg-[#17171E] border-r border-[#2A2A38] flex flex-col transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out">
+            <div class="p-3 border-b border-[#2A2A38]">
+                <button onclick="startNewChat()" class="w-full py-2.5 px-3 bg-[#10A37F] hover:bg-[#0D8769] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
+                    <span>+</span> New Conversation
+                </button>
+            </div>
+            <div class="px-3 pt-3 text-[10px] font-bold text-[#828699] tracking-wider">CONVERSATION VAULT</div>
+            <div id="chatList" class="flex-1 overflow-y-auto p-2 space-y-1 hide-scrollbar"></div>
+        </aside>
+
+        <!-- BACKDROP -->
+        <div id="backdrop" onclick="toggleSidebar()" class="hidden fixed inset-0 bg-black/60 z-20 md:hidden"></div>
+
+        <!-- CHAT AREA -->
+        <main class="flex-1 flex flex-col h-full bg-[#0E0E12] relative overflow-hidden" id="chatArea">
+            <div id="messagesContainer" class="flex-1 overflow-y-auto p-4 space-y-4 hide-scrollbar">
+                <div id="welcomeBanner" class="h-full flex flex-col items-center justify-center text-center p-6 space-y-2 select-none">
+                    <div class="text-3xl font-extrabold text-[#10A37F]">✦ SIREN FLOW</div>
+                    <div class="text-xs text-[#828699]">PHC GIZMOOH • Uncensored Mobile & Desktop Intelligence</div>
+                    <div class="text-[11px] text-[#606474] max-w-sm mt-2">Piliin ang Notrack o OpenRouter sa Settings. Mabilis at walang censorship sa live chatting, sales, scripts, code, o pictures.</div>
+                </div>
+            </div>
+
+            <!-- INPUT BAR -->
+            <div class="p-3 bg-[#17171E] border-t border-[#2A2A38] shrink-0" id="inputContainer">
+                <div class="max-w-4xl mx-auto space-y-2">
+                    <div class="flex items-center justify-between text-xs text-[#828699] px-1">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[11px]">Ratio:</span>
+                            <select id="aspectRatio" class="bg-[#22222D] text-xs rounded px-2 py-0.5 border border-[#2A2A38] outline-none">
+                                <option value="1:1">1:1 (Square)</option>
+                                <option value="9:16">9:16 (Story)</option>
+                                <option value="16:9">16:9 (Landscape)</option>
+                                <option value="4:5">4:5 (Portrait)</option>
+                            </select>
+                        </div>
+                        <div id="statusLabel" class="text-[11px] truncate">Ready</div>
+                    </div>
+
+                    <div class="flex items-center gap-2 bg-[#22222D] border border-[#2A2A38] rounded-2xl p-1.5 focus-within:border-[#10A37F] transition-all" id="inputBox">
+                        <textarea id="promptInput" rows="1" placeholder="Type prompt or describe image..." class="flex-1 bg-transparent px-3 py-1.5 text-sm outline-none resize-none max-h-32 text-inherit" oninput="autoResizeTextarea(this)" onkeydown="handleKeyDown(event)"></textarea>
+                        
+                        <button onclick="createImageAction()" title="Create FLUX Picture" class="p-2 bg-[#2E313D] hover:bg-[#3B3F4E] active:scale-95 text-[#10A37F] font-bold text-xs rounded-xl px-3 transition-all shrink-0">
+                            🎨 Pic
+                        </button>
+
+                        <button id="btnSend" onclick="sendMessageAction()" class="w-10 h-10 bg-[#10A37F] hover:bg-[#0D8769] active:scale-95 text-white font-bold rounded-xl flex items-center justify-center shrink-0 transition-all">
+                            ➤
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div id="settingsModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+        <div class="bg-[#17171E] border border-[#2A2A38] rounded-2xl max-w-md w-full p-5 space-y-4 text-inherit shadow-2xl">
+            <div class="flex justify-between items-center border-b border-[#2A2A38] pb-3">
+                <h2 class="text-sm font-bold text-[#10A37F]">✦ SYSTEM PREFERENCES</h2>
+                <button onclick="closeSettings()" class="text-gray-400 hover:text-white font-bold">✕</button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="font-bold text-[#10A37F] block mb-1">API Token (sk-notrack-... or sk-or-v1-...)</label>
+                    <input type="password" id="cfgApiKey" placeholder="Paste your API key" class="w-full bg-[#22222D] border border-[#2A2A38] rounded-lg p-2.5 text-inherit outline-none">
+                </div>
+
+                <div>
+                    <label class="font-bold text-[#10A37F] block mb-1">Neural Engine</label>
+                    <select id="cfgModel" class="w-full bg-[#22222D] border border-[#2A2A38] rounded-lg p-2.5 text-inherit outline-none">
+                        <option value="notrack-uncensored">notrack-uncensored</option>
+                        <option value="gryphe/mythomax-l2-13b">gryphe/mythomax-l2-13b</option>
+                        <option value="nousresearch/hermes-3-llama-3.1-8b">nousresearch/hermes-3-llama-3.1-8b</option>
+                        <option value="meta-llama/llama-3.3-70b-instruct">meta-llama/llama-3.3-70b-instruct</option>
+                        <option value="qwen/qwen-2.5-72b-instruct">qwen/qwen-2.5-72b-instruct</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="font-bold text-[#10A37F] block mb-1">System Directive Prompt</label>
+                    <textarea id="cfgSystemPrompt" rows="3" class="w-full bg-[#22222D] border border-[#2A2A38] rounded-lg p-2 text-inherit outline-none resize-none"></textarea>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeSettings()" class="px-4 py-2 bg-[#22222D] rounded-lg text-xs font-semibold">Cancel</button>
+                <button onclick="saveSettingsAction()" class="px-5 py-2 bg-[#10A37F] hover:bg-[#0D8769] text-white rounded-lg text-xs font-bold">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CLIENT SCRIPT -->
+    <script>
+        let currentChatId = null;
+        let chats = [];
+        let currentMessages = [];
+        let isGenerating = false;
+        let abortController = null;
+        let currentTheme = "dark";
+
+        async function init() {
+            const cfgRes = await fetch("/api/config");
+            const cfg = await cfgRes.json();
+            currentTheme = cfg.theme || "dark";
+            applyTheme(currentTheme);
+
+            document.getElementById("cfgApiKey").value = cfg.openrouter_api_key || "";
+            document.getElementById("cfgModel").value = cfg.selected_model || "notrack-uncensored";
+            document.getElementById("cfgSystemPrompt").value = cfg.system_prompt || "";
+
+            const chatsRes = await fetch("/api/chats");
+            chats = await chatsRes.json();
+            renderSidebar();
+        }
+
+        function toggleTheme() {
+            currentTheme = currentTheme === "dark" ? "light" : "dark";
+            applyTheme(currentTheme);
+            fetch("/api/config", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ theme: currentTheme })
+            });
+        }
+
+        function applyTheme(theme) {
+            const body = document.getElementById("appBody");
+            const header = document.getElementById("headerBar");
+            const sidebar = document.getElementById("sidebar");
+            const chatArea = document.getElementById("chatArea");
+            const inputContainer = document.getElementById("inputContainer");
+            const themeBtn = document.getElementById("themeBtn");
+
+            if (theme === "light") {
+                body.className = "bg-[#FFFFFF] text-[#1F2937] h-screen w-screen overflow-hidden flex flex-col font-sans";
+                header.className = "h-14 border-b border-[#E5E5E8] flex items-center justify-between px-4 bg-[#F7F7F8] shrink-0 select-none";
+                sidebar.className = "absolute md:relative z-30 w-72 h-full bg-[#F7F7F8] border-r border-[#E5E5E8] flex flex-col transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out";
+                chatArea.className = "flex-1 flex flex-col h-full bg-[#FFFFFF] relative overflow-hidden";
+                inputContainer.className = "p-3 bg-[#F7F7F8] border-t border-[#E5E5E8] shrink-0";
+                themeBtn.innerText = "🌙";
+            } else {
+                body.className = "bg-[#0E0E12] text-[#EDEDF2] h-screen w-screen overflow-hidden flex flex-col font-sans";
+                header.className = "h-14 border-b border-[#2A2A38] flex items-center justify-between px-4 bg-[#17171E] shrink-0 select-none";
+                sidebar.className = "absolute md:relative z-30 w-72 h-full bg-[#17171E] border-r border-[#2A2A38] flex flex-col transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out";
+                chatArea.className = "flex-1 flex flex-col h-full bg-[#0E0E12] relative overflow-hidden";
+                inputContainer.className = "p-3 bg-[#17171E] border-t border-[#2A2A38] shrink-0";
+                themeBtn.innerText = "☀️";
+            }
+        }
+
+        // PURE CLICK-ONLY TOGGLE
+        function toggleSidebar() {
+            const sidebar = document.getElementById("sidebar");
+            const backdrop = document.getElementById("backdrop");
+            if (sidebar.classList.contains("-translate-x-full")) {
+                sidebar.classList.remove("-translate-x-full");
+                backdrop.classList.remove("hidden");
+            } else {
+                sidebar.classList.add("-translate-x-full");
+                backdrop.classList.add("hidden");
+            }
+        }
+
+        function autoResizeTextarea(el) {
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+        }
+
+        function handleKeyDown(e) {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendMessageAction();
+            }
+        }
+
+        function openSettings() { document.getElementById("settingsModal").classList.remove("hidden"); }
+        function closeSettings() { document.getElementById("settingsModal").classList.add("hidden"); }
+
+        async function saveSettingsAction() {
+            const key = document.getElementById("cfgApiKey").value.trim();
+            const model = document.getElementById("cfgModel").value;
+            const prompt = document.getElementById("cfgSystemPrompt").value.trim();
+            await fetch("/api/config", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ openrouter_api_key: key, selected_model: model, system_prompt: prompt })
+            });
+            closeSettings();
+        }
+
+        function renderSidebar() {
+            const list = document.getElementById("chatList");
+            list.innerHTML = "";
+            chats.slice().reverse().forEach(c => {
+                const item = document.createElement("div");
+                const isActive = c.id === currentChatId;
+                item.className = `p-2.5 rounded-xl text-xs flex justify-between items-center cursor-pointer transition-all ${isActive ? 'bg-[#10A37F]/20 text-[#10A37F] font-bold' : 'hover:bg-[#22222D]'}`;
+                item.innerHTML = `
+                    <span class="truncate flex-1" onclick="loadChat('${c.id}')">${c.title || 'Untitled Session'}</span>
+                    <button onclick="deleteChat('${c.id}', event)" class="text-gray-500 hover:text-red-400 px-1 font-bold">✕</button>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function startNewChat() {
+            currentChatId = null;
+            currentMessages = [];
+            document.getElementById("messagesContainer").innerHTML = `
+                <div id="welcomeBanner" class="h-full flex flex-col items-center justify-center text-center p-6 space-y-2 select-none">
+                    <div class="text-3xl font-extrabold text-[#10A37F]">✦ SIREN FLOW</div>
+                    <div class="text-xs text-[#828699]">PHC GIZMOOH • Uncensored Mobile & Desktop Intelligence</div>
+                    <div class="text-[11px] text-[#606474] max-w-sm mt-2">Piliin ang Notrack o OpenRouter sa Settings. Mabilis at walang censorship sa live chatting, sales, scripts, code, o pictures.</div>
+                </div>
+            `;
+            renderSidebar();
+            if (window.innerWidth < 768) toggleSidebar();
+        }
+
+        function loadChat(id) {
+            const target = chats.find(c => c.id === id);
+            if (!target) return;
+            currentChatId = id;
+            currentMessages = [...target.messages];
+            renderSidebar();
+            renderMessages();
+            if (window.innerWidth < 768) toggleSidebar();
+        }
+
+        function deleteChat(id, e) {
+            e.stopPropagation();
+            chats = chats.filter(c => c.id !== id);
+            syncChats();
+            if (currentChatId === id) startNewChat();
+            else renderSidebar();
+        }
+
+        function syncChats() {
+            fetch("/api/chats", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(chats)
+            });
+        }
+
+        function renderMessages() {
+            const container = document.getElementById("messagesContainer");
+            container.innerHTML = "";
+            currentMessages.forEach((msg, idx) => {
+                appendMessageBubble(msg.role, msg.content, idx);
+            });
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function appendMessageBubble(role, content, idx) {
+            const container = document.getElementById("messagesContainer");
+            const isUser = role === "user";
+            const row = document.createElement("div");
+            row.className = `flex flex-col w-full ${isUser ? 'items-end' : 'items-start'}`;
+
+            const bubble = document.createElement("div");
+            bubble.className = `max-w-[92%] md:max-w-[85%] rounded-2xl p-3.5 text-sm leading-relaxed ${
+                isUser 
+                ? 'bg-[#152E25] border border-[#10A37F] text-white self-end' 
+                : 'bg-[#17171E] border border-[#2A2A38] text-inherit w-full'
+            }`;
+
+            const top = document.createElement("div");
+            top.className = "flex justify-between items-center text-[11px] font-bold mb-1 opacity-70";
+            top.innerHTML = `<span>${isUser ? 'YOU' : '✧ SIREN FLOW'}</span><button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)" class="hover:text-[#10A37F]">Copy</button>`;
+
+            const textDiv = document.createElement("div");
+            textDiv.className = "whitespace-pre-wrap break-words";
+            textDiv.innerText = content;
+
+            bubble.appendChild(top);
+            bubble.appendChild(textDiv);
+            row.appendChild(bubble);
+            container.appendChild(row);
+            container.scrollTop = container.scrollHeight;
+            return textDiv;
+        }
+
+        async function sendMessageAction() {
+            if (isGenerating) {
+                if (abortController) abortController.abort();
+                return;
+            }
+
+            const input = document.getElementById("promptInput");
+            const text = input.value.trim();
+            if (!text) return;
+
+            input.value = "";
+            input.style.height = 'auto';
+
+            if (!currentChatId) {
+                currentChatId = Date.now().toString();
+                chats.push({ id: currentChatId, title: text.slice(0, 24), messages: [] });
+            }
+
+            currentMessages.push({ role: "user", content: text });
+            const chatObj = chats.find(c => c.id === currentChatId);
+            if (chatObj) chatObj.messages = currentMessages;
+            syncChats();
+            renderSidebar();
+
+            const banner = document.getElementById("welcomeBanner");
+            if (banner) banner.remove();
+
+            appendMessageBubble("user", text);
+
+            isGenerating = true;
+            document.getElementById("btnSend").innerText = "⏹";
+            document.getElementById("btnSend").className = "w-10 h-10 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl flex items-center justify-center shrink-0 transition-all";
+            document.getElementById("statusLabel").innerText = "Generating response...";
+
+            const aiBubbleText = appendMessageBubble("assistant", "");
+            abortController = new AbortController();
+
+            try {
+                const response = await fetch("/api/chat/stream", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({ messages: currentMessages }),
+                    signal: abortController.signal
+                });
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let fullAnswer = "";
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split("\n");
+                    for (const line of lines) {
+                        if (line.startsWith("data: ")) {
+                            const raw = line.slice(6).trim();
+                            if (raw === "[DONE]") break;
+                            try {
+                                const parsed = JSON.parse(raw);
+                                if (parsed.content) {
+                                    fullAnswer += parsed.content;
+                                    aiBubbleText.innerText = fullAnswer;
+                                    document.getElementById("messagesContainer").scrollTop = document.getElementById("messagesContainer").scrollHeight;
+                                }
+                            } catch(e) {}
+                        }
+                    }
+                }
+
+                currentMessages.push({ role: "assistant", content: fullAnswer });
+                if (chatObj) chatObj.messages = currentMessages;
+                syncChats();
+            } catch(e) {
+                if (e.name !== "AbortError") {
+                    aiBubbleText.innerText += "\n[Connection interrupted]";
+                }
+            } finally {
+                isGenerating = false;
+                document.getElementById("btnSend").innerText = "➤";
+                document.getElementById("btnSend").className = "w-10 h-10 bg-[#10A37F] hover:bg-[#0D8769] text-white font-bold rounded-xl flex items-center justify-center shrink-0 transition-all";
+                document.getElementById("statusLabel").innerText = "Ready";
+            }
+        }
+
+        async function createImageAction() {
+            const input = document.getElementById("promptInput");
+            const prompt = input.value.trim();
+            if (!prompt) return;
+
+            input.value = "";
+            const ratio = document.getElementById("aspectRatio").value;
+
+            if (!currentChatId) {
+                currentChatId = Date.now().toString();
+                chats.push({ id: currentChatId, title: "🎨 " + prompt.slice(0, 20), messages: [] });
+            }
+
+            const banner = document.getElementById("welcomeBanner");
+            if (banner) banner.remove();
+
+            appendMessageBubble("user", `🎨 [Create Image • ${ratio}]:\n${prompt}`);
+            document.getElementById("statusLabel").innerText = "Rendering FLUX picture...";
+
+            const res = await fetch("/api/image", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ prompt, ratio })
+            });
+            const data = await res.json();
+
+            const container = document.getElementById("messagesContainer");
+            const row = document.createElement("div");
+            row.className = "flex flex-col w-full items-start";
+            row.innerHTML = `
+                <div class="max-w-[92%] md:max-w-[85%] rounded-2xl p-3.5 bg-[#17171E] border border-[#2A2A38] space-y-2">
+                    <div class="text-[11px] font-bold text-[#10A37F]">✧ SIREN FLOW FLUX.1 • ${ratio}</div>
+                    <img src="${data.image_url}" class="rounded-xl w-full max-h-96 object-cover border border-[#2A2A38]" alt="Generated">
+                    <div class="text-xs text-gray-400">${prompt}</div>
+                </div>
+            `;
+            container.appendChild(row);
+            container.scrollTop = container.scrollHeight;
+            document.getElementById("statusLabel").innerText = "Ready";
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
+"""
 
 if __name__ == "__main__":
-    app = SirenFlowAIApp()
-    app.mainloop()
+    uvicorn.run(app, host="0.0.0.0", port=8000)
