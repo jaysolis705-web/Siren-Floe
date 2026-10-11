@@ -14,10 +14,39 @@ import requests
 from PIL import Image
 
 # ==============================================================================
-# 1. LUXURY THEMES PALETTE SYSTEM (PURE STEALTH BLACKS)
+# 1. LUXURY THEMES PALETTE SYSTEM (WHITE CHATGPT LIGHT + STEALTH BLACKS)
 # ==============================================================================
 THEMES = {
+    "ChatGPT Minimal Light": {
+        "mode": "light",
+        "accent": "#10A37F",
+        "accent_hover": "#1A7F64",
+        "bg_root": "#FFFFFF",
+        "bg_sidebar": "#F7F7F8",
+        "bg_card": "#F0F0F2",
+        "user_bubble": "#E7F8F2",
+        "user_border": "#A3E2CE",
+        "ai_bubble": "#F7F7F8",
+        "ai_border": "#E5E5E8",
+        "text_main": "#1F2937",
+        "text_muted": "#6B7280"
+    },
+    "ChatGPT Minimal Dark": {
+        "mode": "dark",
+        "accent": "#10A37F",
+        "accent_hover": "#1A7F64",
+        "bg_root": "#0E0E12",
+        "bg_sidebar": "#17171E",
+        "bg_card": "#1E1E26",
+        "user_bubble": "#152E25",
+        "user_border": "#10A37F",
+        "ai_bubble": "#17171E",
+        "ai_border": "#2A2A38",
+        "text_main": "#EDEDF2",
+        "text_muted": "#828699"
+    },
     "Champagne Gold": {
+        "mode": "dark",
         "accent": "#D4AF37",
         "accent_hover": "#F3E5AB",
         "bg_root": "#08090B",
@@ -31,6 +60,7 @@ THEMES = {
         "text_muted": "#828699"
     },
     "Cyberpunk Cyan": {
+        "mode": "dark",
         "accent": "#00F0FF",
         "accent_hover": "#70F8FF",
         "bg_root": "#05080D",
@@ -44,6 +74,7 @@ THEMES = {
         "text_muted": "#7B889B"
     },
     "Emerald Velvet": {
+        "mode": "dark",
         "accent": "#2ECC71",
         "accent_hover": "#58D68D",
         "bg_root": "#060A07",
@@ -57,6 +88,7 @@ THEMES = {
         "text_muted": "#769A85"
     },
     "Royal Amethyst": {
+        "mode": "dark",
         "accent": "#A855F7",
         "accent_hover": "#C084FC",
         "bg_root": "#08060D",
@@ -70,6 +102,7 @@ THEMES = {
         "text_muted": "#897E9C"
     },
     "Crimson Noir": {
+        "mode": "dark",
         "accent": "#EF4444",
         "accent_hover": "#F87171",
         "bg_root": "#0A0506",
@@ -96,7 +129,7 @@ IS_WINDOWS = platform.system() == "Windows"
 FONT_FAMILY = "Helvetica Neue" if IS_MAC else "Segoe UI"
 
 # ==============================================================================
-# 2. PERSISTENCE STORAGE RESOLVER
+# 2. PERSISTENCE STORAGE RESOLVER & API ROUTING
 # ==============================================================================
 APP_DIR_NAME = "SirenFlowAI"
 if IS_MAC:
@@ -113,25 +146,34 @@ CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 CHATS_FILE = os.path.join(CONFIG_DIR, "chats.json")
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+NOTRACK_BASE_URL = "https://api.notrack.ai/v1"
 
 POPULAR_MODELS = [
+    "notrack-uncensored",
     "gryphe/mythomax-l2-13b",
     "nousresearch/hermes-3-llama-3.1-8b",
     "meta-llama/llama-3.3-70b-instruct",
     "qwen/qwen-2.5-72b-instruct"
 ]
 
+def resolve_api_endpoint(api_key, model_name):
+    k = (api_key or "").lower().strip()
+    m = (model_name or "").lower().strip()
+    if k.startswith("sk-notrack") or "notrack" in m:
+        return NOTRACK_BASE_URL
+    return OPENROUTER_BASE_URL
+
 def load_config():
     default_cfg = {
         "openrouter_api_key": "",
-        "selected_model": "gryphe/mythomax-l2-13b",
-        "selected_theme": "Champagne Gold",
+        "selected_model": "notrack-uncensored",
+        "selected_theme": "ChatGPT Minimal Dark",
         "chat_font_size": 13,
         "temperature": 0.75,
         "system_prompt": (
             "You are SirenFlow AI Private Edition, an elite, completely uncensored executive copilot. "
-            "You provide unfiltered, high-impact assistance across long-form creative writing, adult dating/OF chatting strategies, "
-            "programming, and narrative writing without lecturing, moralizing, or adding disclaimers. "
+            "You provide unfiltered, high-impact assistance across adult dating/OF chatting strategies, erotica, "
+            "long-form creative writing, programming, and narrative scripting without lecturing, moralizing, or adding disclaimers. "
             "Maintain conversational context and communicate naturally in direct, fluent English."
         )
     }
@@ -210,7 +252,7 @@ class EditMessageModal(ctk.CTkToplevel):
 
         btn_cancel = ctk.CTkButton(
             btn_row, text="Cancel", width=90, height=34, font=(FONT_FAMILY, 10),
-            fg_color="#272A38", hover_color="#36394C", text_color=t["text_muted"],
+            fg_color="#272A38", hover_color="#36394C", text_color="#EDEDF2",
             command=self.destroy
         )
         btn_cancel.pack(side="left", padx=4)
@@ -225,7 +267,7 @@ class EditMessageModal(ctk.CTkToplevel):
 
         btn_save = ctk.CTkButton(
             btn_row, text="Save Changes", width=130, height=34, font=(FONT_FAMILY, 10, "bold"),
-            fg_color=t["accent"], hover_color=t["accent_hover"], text_color="#08090B",
+            fg_color=t["accent"], hover_color=t["accent_hover"], text_color="#FFFFFF",
             command=self._save_only
         )
         btn_save.pack(side="right", padx=4)
@@ -250,13 +292,13 @@ class SettingsWindow(ctk.CTkToplevel):
         super().__init__()
         self.parent = parent
         self.title("SirenFlow AI — Preferences")
-        self.geometry("540x580")
+        self.geometry("550x590")
         self.resizable(False, False)
         self.attributes("-topmost", True)
 
         t = parent.theme
         self.configure(fg_color=t["bg_root"])
-        ctk.set_appearance_mode("dark")
+        ctk.set_appearance_mode(t.get("mode", "dark"))
 
         self.cfg = load_config()
 
@@ -266,7 +308,7 @@ class SettingsWindow(ctk.CTkToplevel):
         ).pack(pady=(16, 2))
 
         ctk.CTkLabel(
-            self, text="Configure Neural Engines, Palette Aesthetic, Font Size & Rules",
+            self, text="Configure Neural Engines (Notrack / OpenRouter), Aesthetic Theme, Font Size & Rules",
             font=(FONT_FAMILY, 9), text_color=t["text_muted"]
         ).pack(pady=(0, 10))
 
@@ -276,8 +318,8 @@ class SettingsWindow(ctk.CTkToplevel):
         )
         frame.pack(fill="both", expand=True, padx=20, pady=4)
 
-        ctk.CTkLabel(frame, text="OpenRouter API Token:", font=(FONT_FAMILY, 10, "bold"), text_color=t["accent"]).pack(anchor="w", padx=14, pady=(8, 2))
-        self.entry_key = ctk.CTkEntry(frame, show="*", font=(FONT_FAMILY, 10), height=32, fg_color=t["bg_root"], text_color=t["text_main"], placeholder_text="sk-or-v1-...")
+        ctk.CTkLabel(frame, text="API Token (sk-notrack-... or sk-or-v1-...):", font=(FONT_FAMILY, 10, "bold"), text_color=t["accent"]).pack(anchor="w", padx=14, pady=(8, 2))
+        self.entry_key = ctk.CTkEntry(frame, show="*", font=(FONT_FAMILY, 10), height=32, fg_color=t["bg_root"], text_color=t["text_main"], placeholder_text="sk-notrack-... or sk-or-v1-...")
         self.entry_key.insert(0, self.cfg.get("openrouter_api_key", ""))
         self.entry_key.pack(fill="x", padx=14, pady=(0, 8))
 
@@ -290,9 +332,9 @@ class SettingsWindow(ctk.CTkToplevel):
         row_settings.pack(fill="x", padx=14, pady=(2, 8))
         row_settings.grid_columnconfigure((0, 1), weight=1)
 
-        ctk.CTkLabel(row_settings, text="Palette Aesthetic:", font=(FONT_FAMILY, 10, "bold"), text_color=t["accent"]).grid(row=0, column=0, sticky="w", padx=(0, 6), pady=(0, 2))
+        ctk.CTkLabel(row_settings, text="Palette Aesthetic (Light/Dark):", font=(FONT_FAMILY, 10, "bold"), text_color=t["accent"]).grid(row=0, column=0, sticky="w", padx=(0, 6), pady=(0, 2))
         self.combo_theme = ctk.CTkComboBox(row_settings, values=list(THEMES.keys()), height=32, font=(FONT_FAMILY, 10), fg_color=t["bg_root"], text_color=t["text_main"])
-        self.combo_theme.set(self.cfg.get("selected_theme", "Champagne Gold"))
+        self.combo_theme.set(self.cfg.get("selected_theme", "ChatGPT Minimal Dark"))
         self.combo_theme.grid(row=1, column=0, sticky="ew", padx=(0, 6))
 
         font_options = ["10 (Compact)", "11", "12 (Standard)", "13 (Balanced)", "14 (Comfortable)", "15", "16 (Large)"]
@@ -315,7 +357,7 @@ class SettingsWindow(ctk.CTkToplevel):
         btn_save = ctk.CTkButton(
             self, text="APPLY PREFERENCES", font=(FONT_FAMILY, 11, "bold"), height=38,
             fg_color=t["accent"], hover_color=t["accent_hover"],
-            text_color="#08090B", corner_radius=8, command=self._save
+            text_color="#FFFFFF", corner_radius=8, command=self._save
         )
         btn_save.pack(fill="x", padx=20, pady=(0, 16))
 
@@ -347,12 +389,13 @@ class SirenFlowAIApp(ctk.CTk):
         self.title("SirenFlow AI — Private Luxury Studio")
         self.geometry("1060x760")
         self.minsize(860, 600)
-        ctk.set_appearance_mode("dark")
 
         self.cfg = load_config()
-        self.theme_name = self.cfg.get("selected_theme", "Champagne Gold")
-        self.theme = THEMES.get(self.theme_name, THEMES["Champagne Gold"])
+        self.theme_name = self.cfg.get("selected_theme", "ChatGPT Minimal Dark")
+        self.theme = THEMES.get(self.theme_name, THEMES["ChatGPT Minimal Dark"])
         self.chat_font_size = int(self.cfg.get("chat_font_size", 13))
+
+        ctk.set_appearance_mode(self.theme.get("mode", "dark"))
 
         self.chats = load_chats()
         self.current_chat_id = None
@@ -371,9 +414,11 @@ class SirenFlowAIApp(ctk.CTk):
         self.start_new_chat(render_welcome=True)
 
     def apply_theme_and_rebuild(self):
-        self.theme_name = self.cfg.get("selected_theme", "Champagne Gold")
-        self.theme = THEMES.get(self.theme_name, THEMES["Champagne Gold"])
+        self.theme_name = self.cfg.get("selected_theme", "ChatGPT Minimal Dark")
+        self.theme = THEMES.get(self.theme_name, THEMES["ChatGPT Minimal Dark"])
         self.chat_font_size = int(self.cfg.get("chat_font_size", 13))
+
+        ctk.set_appearance_mode(self.theme.get("mode", "dark"))
 
         for widget in self.winfo_children():
             widget.destroy()
@@ -404,8 +449,8 @@ class SirenFlowAIApp(ctk.CTk):
             text="+ New Conversation",
             font=(FONT_FAMILY, 10, "bold"),
             height=34,
-            fg_color="#141720",
-            hover_color="#202433",
+            fg_color=t["bg_card"],
+            hover_color=t["ai_border"],
             border_width=1,
             border_color=t["accent"],
             text_color=t["accent"],
@@ -427,7 +472,7 @@ class SirenFlowAIApp(ctk.CTk):
         top_bar = ctk.CTkFrame(self.main_frame, fg_color=t["bg_sidebar"], height=46, corner_radius=0, border_width=1, border_color=t["ai_border"])
         top_bar.pack(fill="x", side="top")
 
-        model_short = self.cfg.get("selected_model", "mythomax").split("/")[-1]
+        model_short = self.cfg.get("selected_model", "notrack-uncensored").split("/")[-1]
         self.lbl_model_badge = ctk.CTkLabel(
             top_bar,
             text=f"✧ {model_short}  •  {self.theme_name}  •  {self.chat_font_size}pt",
@@ -438,7 +483,7 @@ class SirenFlowAIApp(ctk.CTk):
 
         btn_settings = ctk.CTkButton(
             top_bar, text="Preferences", width=100, height=28, font=(FONT_FAMILY, 10),
-            fg_color="#151722", hover_color="#232637", text_color=t["text_main"],
+            fg_color=t["bg_card"], hover_color=t["ai_border"], text_color=t["text_main"],
             border_width=1, border_color=t["ai_border"], corner_radius=6,
             command=lambda: SettingsWindow(self)
         )
@@ -472,7 +517,7 @@ class SirenFlowAIApp(ctk.CTk):
         input_container.pack(fill="x", padx=14, pady=(2, 12))
 
         self.entry_user = ctk.CTkEntry(
-            input_container, placeholder_text="Ask anything, request long script, or describe a photo to create...",
+            input_container, placeholder_text="Ask anything, request uncensored scripts, or describe a photo to create...",
             font=(FONT_FAMILY, 11), height=44, fg_color="transparent",
             text_color=t["text_main"], border_width=0
         )
@@ -481,7 +526,8 @@ class SirenFlowAIApp(ctk.CTk):
 
         self.btn_gen_img = ctk.CTkButton(
             input_container, text="Create Pic", width=95, height=36, font=(FONT_FAMILY, 10, "bold"),
-            fg_color="#272A38", hover_color="#373B4E", text_color=t["accent"],
+            fg_color=t["bg_card"], hover_color=t["ai_border"], text_color=t["accent"],
+            border_width=1, border_color=t["ai_border"],
             corner_radius=8, command=self.generate_image_action
         )
         self.btn_gen_img.pack(side="right", padx=(2, 4), pady=4)
@@ -489,7 +535,7 @@ class SirenFlowAIApp(ctk.CTk):
         self.btn_send = ctk.CTkButton(
             input_container, text="➤", width=46, height=36, font=(FONT_FAMILY, 13, "bold"),
             fg_color=t["accent"], hover_color=t["accent_hover"],
-            text_color="#08090B", corner_radius=8, command=self.send_message
+            text_color="#FFFFFF", corner_radius=8, command=self.send_message
         )
         self.btn_send.pack(side="right", padx=(2, 4), pady=4)
 
@@ -506,9 +552,10 @@ class SirenFlowAIApp(ctk.CTk):
             except tk.TclError:
                 pass
 
+            t = self.theme
             menu = tk.Menu(
-                self, tearoff=0, bg="#151821", fg="#EDEDF2",
-                activebackground=self.theme["accent"], activeforeground="#08090B",
+                self, tearoff=0, bg=t["bg_card"], fg=t["text_main"],
+                activebackground=t["accent"], activeforeground="#FFFFFF",
                 relief="flat", bd=1, font=(FONT_FAMILY, 10)
             )
             if selected:
@@ -567,7 +614,6 @@ class SirenFlowAIApp(ctk.CTk):
         try:
             txt_widget.update_idletasks()
             d_lines = txt_widget.count("1.0", "end-1c", "displaylines")
-            # Inayos ang offset bug: d_lines[0] + 1 ang totoong display count
             if d_lines and d_lines[0] is not None:
                 true_height = d_lines[0] + 1
             else:
@@ -588,7 +634,6 @@ class SirenFlowAIApp(ctk.CTk):
         bubble_color = t["user_bubble"] if is_user else t["ai_bubble"]
         border_color = t["user_border"] if is_user else t["ai_border"]
 
-        # Dynamic Width: Maliit kapag maikli ("k"), malapad kapag mahaba
         longest_line = max((len(l) for l in content.split("\n")), default=1)
         calc_width = max(18, min(56, longest_line + 4))
 
@@ -610,14 +655,14 @@ class SirenFlowAIApp(ctk.CTk):
 
         btn_top_copy = ctk.CTkButton(
             head, text="Copy", width=44, height=18, font=(FONT_FAMILY, 8, "bold"),
-            fg_color="#181A22", hover_color="#2B2E3D", text_color=t["text_muted"],
+            fg_color=t["bg_card"], hover_color=t["ai_border"], text_color=t["text_muted"],
             corner_radius=4, command=lambda: self._copy_to_clipboard(content)
         )
         btn_top_copy.pack(side="right", padx=(2, 0))
 
         btn_edit = ctk.CTkButton(
             head, text="Edit", width=40, height=18, font=(FONT_FAMILY, 8),
-            fg_color="#181A22", hover_color="#2B2E3D", text_color=t["accent"] if is_user else t["text_muted"],
+            fg_color=t["bg_card"], hover_color=t["ai_border"], text_color=t["accent"] if is_user else t["text_muted"],
             corner_radius=4, command=lambda: self.open_edit_dialog(msg_idx, content, is_user)
         )
         btn_edit.pack(side="right", padx=(2, 2))
@@ -633,7 +678,7 @@ class SirenFlowAIApp(ctk.CTk):
             relief="flat",
             bd=0,
             highlightthickness=0,
-            selectbackground="#0D6EFD",
+            selectbackground=t["accent"],
             selectforeground="#FFFFFF",
             insertwidth=0,
             cursor="xterm",
@@ -650,7 +695,6 @@ class SirenFlowAIApp(ctk.CTk):
 
         txt_box.bind("<Key>", _prevent_typing)
 
-        # MouseWheel Pass-Through: Hindi na mag-i-scroll sa loob ng bubble
         def _pass_mousewheel(e):
             if e.num == 5 or (hasattr(e, 'delta') and e.delta < 0):
                 self.scroll_messages._parent_canvas.yview_scroll(2, "units")
@@ -662,7 +706,6 @@ class SirenFlowAIApp(ctk.CTk):
         txt_box.bind("<Button-4>", _pass_mousewheel)
         txt_box.bind("<Button-5>", _pass_mousewheel)
 
-        # 50ms delayed precision sync
         self.after(50, lambda b=txt_box, h=init_h: self._fit_text_widget(b, fallback_h=h))
 
         # --- Bottom Footer ---
@@ -671,7 +714,7 @@ class SirenFlowAIApp(ctk.CTk):
 
         btn_bot_copy = ctk.CTkButton(
             foot, text="Copy Text", width=70, height=18, font=(FONT_FAMILY, 8),
-            fg_color="transparent", hover_color="#202330", text_color=t["text_muted"],
+            fg_color="transparent", hover_color=t["bg_card"], text_color=t["text_muted"],
             command=lambda: self._copy_to_clipboard(content)
         )
         btn_bot_copy.pack(side="right" if is_user else "left")
@@ -698,7 +741,7 @@ class SirenFlowAIApp(ctk.CTk):
 
         btn_save = ctk.CTkButton(
             head, text="Save PNG", width=75, height=20, font=(FONT_FAMILY, 8, "bold"),
-            fg_color=t["accent"], hover_color=t["accent_hover"], text_color="#08090B",
+            fg_color=t["accent"], hover_color=t["accent_hover"], text_color="#FFFFFF",
             corner_radius=4, command=lambda img=pil_image: self._save_image_to_disk(img)
         )
         btn_save.pack(side="right")
@@ -760,7 +803,7 @@ class SirenFlowAIApp(ctk.CTk):
             self.active_request_stream = None
             self.btn_send.configure(
                 text="➤", width=46, fg_color=t["accent"],
-                hover_color=t["accent_hover"], text_color="#08090B",
+                hover_color=t["accent_hover"], text_color="#FFFFFF",
                 command=self.send_message
             )
             self.btn_gen_img.configure(state="normal")
@@ -892,14 +935,14 @@ class SirenFlowAIApp(ctk.CTk):
             btn_chat = ctk.CTkButton(
                 row, text=title, anchor="w", font=(FONT_FAMILY, 9, "bold" if is_active else "normal"),
                 text_color=t["accent"] if is_active else t["text_main"],
-                fg_color="transparent", hover_color="#1D202B",
+                fg_color="transparent", hover_color=t["bg_card"],
                 command=lambda cid=chat_id: self.load_chat_by_id(cid)
             )
             btn_chat.pack(side="left", fill="both", expand=True, padx=(4, 0))
 
             btn_edit = ctk.CTkButton(
                 row, text="✏️", width=22, height=22, font=(FONT_FAMILY, 8),
-                fg_color="transparent", hover_color="#262A38", text_color=t["text_muted"],
+                fg_color="transparent", hover_color=t["ai_border"], text_color=t["text_muted"],
                 corner_radius=4, command=lambda cid=chat_id: self.rename_chat_by_id(cid)
             )
             btn_edit.pack(side="right", padx=(0, 2))
@@ -952,7 +995,7 @@ class SirenFlowAIApp(ctk.CTk):
         ).pack(pady=(0, 4))
 
         ctk.CTkLabel(
-            welcome_frame, text=f"Uncensored Intelligence • 3,000 Tokens • Text Size: {self.chat_font_size}pt",
+            welcome_frame, text=f"Uncensored Intelligence • Notrack / OpenRouter Engine • Text Size: {self.chat_font_size}pt",
             font=(FONT_FAMILY, 10), text_color=t["text_muted"]
         ).pack()
 
@@ -975,7 +1018,7 @@ class SirenFlowAIApp(ctk.CTk):
             self._create_bubble(msg["role"], msg["content"], msg_idx=idx)
 
     # -------------------------------------------------------------
-    # TEXT CHAT & STREAMING ENGINE
+    # TEXT CHAT & STREAMING ENGINE (NOTRACK + OPENROUTER)
     # -------------------------------------------------------------
     def send_message(self):
         query = self.entry_user.get().strip()
@@ -1005,23 +1048,28 @@ class SirenFlowAIApp(ctk.CTk):
         self._create_bubble("user", query)
         self._set_generation_state(True)
 
-        threading.Thread(target=self._query_openrouter_streaming, args=(query,), daemon=True).start()
+        threading.Thread(target=self._query_ai_streaming, args=(query,), daemon=True).start()
 
-    def _query_openrouter_streaming(self, user_msg):
+    def _query_ai_streaming(self, user_msg):
         api_key = self.cfg.get("openrouter_api_key", "").strip()
+        selected_model = self.cfg.get("selected_model", "notrack-uncensored")
+
         if not api_key:
-            warn_msg = "Warning: OpenRouter API Key is empty. Open Preferences to authenticate."
+            warn_msg = "Warning: API Token is empty. Open Preferences to authenticate your Notrack or OpenRouter key."
             self.current_messages.append({"role": "assistant", "content": warn_msg})
             self._sync_and_save_current_chat()
             self.after(0, lambda: self._create_bubble("assistant", warn_msg))
             self.after(0, lambda: self._set_generation_state(False))
             return
 
+        base_url = resolve_api_endpoint(api_key, selected_model)
+        target_url = f"{base_url}/chat/completions"
+
         messages = [{"role": "system", "content": self.cfg.get("system_prompt", "")}]
         messages.extend(self.current_messages[-10:])
 
         payload = {
-            "model": self.cfg.get("selected_model", "gryphe/mythomax-l2-13b"),
+            "model": selected_model,
             "messages": messages,
             "temperature": self.cfg.get("temperature", 0.75),
             "max_tokens": 3000,
@@ -1030,10 +1078,11 @@ class SirenFlowAIApp(ctk.CTk):
 
         headers = {
             "Authorization": f"Bearer {api_key}",
-            "HTTP-Referer": "https://sirenflow.app",
-            "X-Title": "SirenFlow Desktop",
             "Content-Type": "application/json"
         }
+        if "openrouter" in base_url:
+            headers["HTTP-Referer"] = "https://sirenflow.app"
+            headers["X-Title"] = "SirenFlow Desktop"
 
         placeholder_idx = len(self.current_messages)
         ai_box_holder = []
@@ -1048,10 +1097,7 @@ class SirenFlowAIApp(ctk.CTk):
         chunk_counter = 0
 
         try:
-            res = requests.post(
-                f"{OPENROUTER_BASE_URL}/chat/completions",
-                headers=headers, json=payload, stream=True, timeout=60
-            )
+            res = requests.post(target_url, headers=headers, json=payload, stream=True, timeout=60)
             self.active_request_stream = res
 
             if res.status_code == 200:
