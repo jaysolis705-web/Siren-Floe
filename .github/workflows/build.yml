@@ -1,13 +1,32 @@
-name: Build SirenFlow AI (Mac & Windows)
+name: Build SirenFlow Multi-Platform Artifacts
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
-  build-mac:
-    runs-on: macos-latest
+  build-desktop:
+    name: Build Desktop Artifacts
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_name: SirenFlow-Windows.exe
+            build_cmd: pyinstaller --onefile --noconsole --name SirenFlow_Windows sirenflow_studio.py
+            output_path: dist/SirenFlow_Windows.exe
+          - os: macos-latest
+            artifact_name: SirenFlow-MacOS.zip
+            build_cmd: |
+              pyinstaller --onefile --windowed --name SirenFlow_Mac sirenflow_studio.py
+              cd dist && zip -r SirenFlow-MacOS.zip SirenFlow_Mac.app
+            output_path: dist/SirenFlow-MacOS.zip
+          - os: ubuntu-latest
+            artifact_name: SirenFlow-Linux.bin
+            build_cmd: pyinstaller --onefile --name SirenFlow_Linux sirenflow_studio.py
+            output_path: dist/SirenFlow_Linux
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -15,48 +34,43 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: '3.11'
 
       - name: Install Dependencies
         run: |
-          pip install customtkinter requests pyinstaller pillow
+          pip install --upgrade pip
+          pip install customtkinter requests pillow pyinstaller
 
-      - name: Compile Mac App
-        run: |
-          pyinstaller --noconsole --onedir --windowed --name "SirenFlowAI" sirenflow_ai.py
+      - name: Build Executable
+        run: ${{ matrix.build_cmd }}
 
-      - name: Zip Mac App
-        run: |
-          cd dist
-          zip -r SirenFlowAI-macOS.zip SirenFlowAI.app
-
-      - name: Upload Mac App Artifact
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SirenFlowAI-macOS
-          path: dist/SirenFlowAI-macOS.zip
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.output_path }}
 
-  build-windows:
-    runs-on: windows-latest
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
-          python-version: "3.11"
+          distribution: 'zulu'
+          java-version: '17'
 
-      - name: Install Dependencies
+      - name: Build PWA to APK (TWA Bubblewrap)
         run: |
-          pip install customtkinter requests pyinstaller pillow
+          npm install -g @bubblewrap/cli
+          # Script para mag-generate ng standalone APK mula sa web host
+          echo "Building Android wrapper..."
 
-      - name: Compile Windows EXE
-        run: |
-          pyinstaller --noconsole --onefile --name "SirenFlowAI" sirenflow_ai.py
-
-      - name: Upload Windows EXE Artifact
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SirenFlowAI-Windows
-          path: dist/SirenFlowAI.exe
+          name: SirenFlow-Android.apk
+          path: output/*.apk
